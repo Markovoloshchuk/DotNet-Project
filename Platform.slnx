@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Appointments/">
+    <Project Path="Services/Appointments/Appointments.Api/Appointments.Api.csproj" />
+    <Project Path="Services/Appointments/Appointments.Bll/Appointments.Bll.csproj" />
+    <Project Path="Services/Appointments/Appointments.Dal/Appointments.Dal.csproj" />
+    <Project Path="Services/Appointments/Appointments.Domain/Appointments.Domain.csproj" />
+  </Folder>
+  <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+</Solution>

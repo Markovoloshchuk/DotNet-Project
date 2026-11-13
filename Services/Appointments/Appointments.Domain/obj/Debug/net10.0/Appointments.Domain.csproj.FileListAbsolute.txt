@@ -1,0 +1,12 @@
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/bin/Debug/net10.0/Appointments.Domain.deps.json
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/bin/Debug/net10.0/Appointments.Domain.dll
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/bin/Debug/net10.0/Appointments.Domain.pdb
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.AssemblyInfoInputs.cache
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.AssemblyInfo.cs
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.csproj.CoreCompileInputs.cache
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.sourcelink.json
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.dll
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/refint/Appointments.Domain.dll
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/Appointments.Domain.pdb
+/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Domain/obj/Debug/net10.0/ref/Appointments.Domain.dll

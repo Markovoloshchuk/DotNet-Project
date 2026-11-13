@@ -22,17 +22,41 @@ IF NOT EXISTS (SELECT * FROM Doctors WHERE FullName = N'Бондар Олена 
 GO
 
 -- Ідемпотентне заповнення візитів
-IF NOT EXISTS (SELECT * FROM Appointments WHERE AppointmentId = 1)
+IF NOT EXISTS (
+    SELECT 1 FROM Appointments WHERE AppointmentId = 1
+)
+BEGIN
     SET IDENTITY_INSERT Appointments ON;
-    INSERT INTO Appointments (AppointmentId, PatientId, DoctorId, AppointmentDate, Status, TotalAmount, CreatedBy) 
-    VALUES (1, 1, 1, '2026-11-20 10:00:00', 'Scheduled', 600.00, 'Admin');
-    SET IDENTITY_INSERT Appointments OFF;
 
-IF NOT EXISTS (SELECT * FROM Appointments WHERE AppointmentId = 2)
-    SET IDENTITY_INSERT Appointments ON;
-    INSERT INTO Appointments (AppointmentId, PatientId, DoctorId, AppointmentDate, Status, TotalAmount, CreatedBy) 
-    VALUES (2, 2, 2, '2026-11-21 12:30:00', 'Completed', 950.00, 'Admin');
+    INSERT INTO Appointments (
+        AppointmentId, PatientId, DoctorId,
+        AppointmentDate, Status, TotalAmount, CreatedBy
+    )
+    VALUES (
+        1, 1, 1, '2026-11-20 10:00:00',
+        'Scheduled', 600.00, 'Admin'
+    );
+
     SET IDENTITY_INSERT Appointments OFF;
+END;
+
+IF NOT EXISTS (
+    SELECT 1 FROM Appointments WHERE AppointmentId = 2
+)
+BEGIN
+    SET IDENTITY_INSERT Appointments ON;
+
+    INSERT INTO Appointments (
+        AppointmentId, PatientId, DoctorId,
+        AppointmentDate, Status, TotalAmount, CreatedBy
+    )
+    VALUES (
+        2, 2, 2, '2026-11-21 12:30:00',
+        'Completed', 950.00, 'Admin'
+    );
+
+    SET IDENTITY_INSERT Appointments OFF;
+END;
 GO
 
 -- Ідемпотентне заповнення рецептів

@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "dgSpecHash": "OunJ1mSW5ns=",
+  "success": true,
+  "projectFilePath": "/home/markv/Documents/Study/NET Tech/DotNet-Project/Services/Appointments/Appointments.Api/Appointments.Api.csproj",
+  "expectedPackageFiles": [
+    "/home/markv/.nuget/packages/automapper/15.1.4/automapper.15.1.4.nupkg.sha512",
+    "/home/markv/.nuget/packages/dapper/2.1.89/dapper.2.1.89.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.bcl.cryptography/9.0.21/microsoft.bcl.cryptography.9.0.21.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.data.sqlclient/7.1.2/microsoft.data.sqlclient.7.1.2.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.data.sqlclient.extensions.abstractions/7.1.2/microsoft.data.sqlclient.extensions.abstractions.7.1.2.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.data.sqlclient.internal.logging/7.1.2/microsoft.data.sqlclient.internal.logging.7.1.2.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.data.sqlclient.sni.runtime/7.1.2/microsoft.data.sqlclient.sni.runtime.7.1.2.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.extensions.apidescription.server/10.0.0/microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.abstractions/8.16.0/microsoft.identitymodel.abstractions.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.jsonwebtokens/8.16.0/microsoft.identitymodel.jsonwebtokens.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.logging/8.16.0/microsoft.identitymodel.logging.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.protocols/8.16.0/microsoft.identitymodel.protocols.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.protocols.openidconnect/8.16.0/microsoft.identitymodel.protocols.openidconnect.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.identitymodel.tokens/8.16.0/microsoft.identitymodel.tokens.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.openapi/3.11.0/microsoft.openapi.3.11.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/microsoft.sqlserver.server/1.0.0/microsoft.sqlserver.server.1.0.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/swashbuckle.aspnetcore/11.0.1/swashbuckle.aspnetcore.11.0.1.nupkg.sha512",
+    "/home/markv/.nuget/packages/swashbuckle.aspnetcore.swagger/11.0.1/swashbuckle.aspnetcore.swagger.11.0.1.nupkg.sha512",
+    "/home/markv/.nuget/packages/swashbuckle.aspnetcore.swaggergen/11.0.1/swashbuckle.aspnetcore.swaggergen.11.0.1.nupkg.sha512",
+    "/home/markv/.nuget/packages/swashbuckle.aspnetcore.swaggerui/11.0.1/swashbuckle.aspnetcore.swaggerui.11.0.1.nupkg.sha512",
+    "/home/markv/.nuget/packages/system.configuration.configurationmanager/9.0.21/system.configuration.configurationmanager.9.0.21.nupkg.sha512",
+    "/home/markv/.nuget/packages/system.identitymodel.tokens.jwt/8.16.0/system.identitymodel.tokens.jwt.8.16.0.nupkg.sha512",
+    "/home/markv/.nuget/packages/system.security.cryptography.pkcs/9.0.21/system.security.cryptography.pkcs.9.0.21.nupkg.sha512",
+    "/home/markv/.nuget/packages/system.security.cryptography.protecteddata/9.0.21/system.security.cryptography.protecteddata.9.0.21.nupkg.sha512"
+  ],
+  "logs": []
+}
