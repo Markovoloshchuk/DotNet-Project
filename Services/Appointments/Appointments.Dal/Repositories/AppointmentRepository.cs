@@ -1,3 +1,4 @@
+
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Appointments.Dal.Interfaces;
@@ -140,6 +141,75 @@ public sealed class AppointmentRepository
             splitOn: "AppointmentServiceId");
 
         return result;
+    }
+
+    public async Task<IReadOnlyList<Appointment>> GetAllWithServicesAsync(
+        CancellationToken ct = default)
+    {
+        await EnsureOpenAsync(ct);
+
+        const string sql = """
+            SELECT
+                a.AppointmentId,
+                a.PatientId,
+                a.DoctorId,
+                a.AppointmentDate,
+                a.Status,
+                a.TotalAmount,
+                a.CreatedAt,
+                a.CreatedBy,
+                a.UpdatedAt,
+                a.UpdatedBy,
+                a.IsDeleted,
+                a.RowVersion,
+
+                s.AppointmentServiceId,
+                s.AppointmentId,
+                s.ServiceId,
+                s.ServiceNameSnapshot,
+                s.PriceSnapshot,
+                s.Quantity
+
+            FROM dbo.Appointments AS a
+
+            LEFT JOIN dbo.AppointmentServices AS s
+                ON a.AppointmentId = s.AppointmentId
+
+            WHERE a.IsDeleted = 0
+
+            ORDER BY a.AppointmentDate, a.AppointmentId;
+            """;
+
+        var appointments = new Dictionary<long, Appointment>();
+
+        await Connection.QueryAsync<Appointment, AppointmentService?, Appointment>(
+            new CommandDefinition(
+                sql,
+                transaction: Transaction,
+                cancellationToken: ct),
+            (appointment, service) =>
+            {
+                if (!appointments.TryGetValue(
+                    appointment.AppointmentId,
+                    out var existingAppointment))
+                {
+                    existingAppointment = appointment;
+                    appointments.Add(
+                        appointment.AppointmentId,
+                        existingAppointment);
+                }
+
+                if (service is not null &&
+                    service.AppointmentServiceId > 0)
+                {
+                    existingAppointment.Services.Add(service);
+                }
+
+                return existingAppointment;
+            },
+            splitOn: "AppointmentServiceId");
+
+        return appointments.Values.ToList();
     }
 
     public override async Task<bool> DeleteAsync(

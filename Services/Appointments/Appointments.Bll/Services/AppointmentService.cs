@@ -40,7 +40,7 @@ public sealed class AppointmentService : IAppointmentService
         CancellationToken ct = default)
     {
         var appointments = await _unitOfWork.Appointments
-            .GetAllAsync(ct);
+            .GetAllWithServicesAsync(ct);
 
         return _mapper.Map<IReadOnlyList<AppointmentDto>>(appointments);
     }

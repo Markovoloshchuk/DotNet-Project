@@ -62,6 +62,7 @@
 
 ```text
 DotNet-Project/
+├── .gitignore
 ├── README.md
 ├── docs/
 ├── db/
@@ -120,6 +121,8 @@ DotNet-Project/
 
 Для передачі значень у SQL-запити використовуються параметризовані команди. Транзакційні операції виконуються в межах одного підключення до бази даних.
 
+Репозиторій записів підтримує отримання одного або всіх записів разом із пов'язаними послугами за допомогою Dapper multi-mapping.
+
 ### 6.3. Business Logic Layer (BLL)
 
 Проєкт `Appointments.Bll` містить:
@@ -168,13 +171,13 @@ DotNet-Project/
 
 | HTTP-метод | Маршрут | Призначення |
 |---|---|---|
-| GET | `/api/appointments` | Отримати список записів |
-| GET | `/api/appointments/{id}` | Отримати запис за ідентифікатором |
+| GET | `/api/appointments` | Отримати список записів разом із послугами |
+| GET | `/api/appointments/{id}` | Отримати запис за ідентифікатором разом із послугами |
 | POST | `/api/appointments` | Створити запис разом із послугами |
 | PUT | `/api/appointments/{id}` | Оновити запис |
-| DELETE | `/api/appointments/{id}` | Видалити запис |
+| DELETE | `/api/appointments/{id}` | Видалити запис (м'яке видалення) |
 
-### HTTP-статуси
+### 7.1. HTTP-статуси
 
 API використовує стандартні HTTP-статуси:
 
@@ -185,6 +188,126 @@ API використовує стандартні HTTP-статуси:
 - `404 Not Found` — ресурс не знайдено;
 - `409 Conflict` — конфлікт бізнес-правил;
 - `500 Internal Server Error` — внутрішня помилка сервера.
+
+Помилки повертаються у форматі ProblemDetails з інформацією про HTTP-статус, описом та ідентифікатором запиту (`traceId`).
+
+### 7.2. Приклади JSON-запитів
+
+**Створення пацієнта — POST `/api/patients`**
+
+```json
+{
+  "fullName": "Іваненко Іван Петрович",
+  "phoneNumber": "+380991234567",
+  "email": "ivanenko@example.com",
+  "dateOfBirth": "1995-05-10"
+}
+```
+
+**Створення запису разом із послугами — POST `/api/appointments`**
+
+```json
+{
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2027-03-15T10:00:00",
+  "services": [
+    {
+      "serviceId": 101,
+      "serviceNameSnapshot": "Первинний огляд терапевта",
+      "priceSnapshot": 600.00,
+      "quantity": 1
+    },
+    {
+      "serviceId": 102,
+      "serviceNameSnapshot": "Додаткова консультація",
+      "priceSnapshot": 300.00,
+      "quantity": 1
+    }
+  ]
+}
+```
+
+У прикладах використовуються демонстраційні значення. Для створення запису `patientId` і `doctorId` мають відповідати наявним записам у базі даних. Номер телефону пацієнта має бути унікальним.
+
+Поля `serviceNameSnapshot` та `priceSnapshot` зберігають назву й ціну послуги на момент створення запису.
+
+### 7.3. Приклади запитів через cURL
+
+Для локального запуску наведені приклади використовують HTTPS-адресу API `https://localhost:7141`. Параметр `-k` дозволяє виконувати запити з локальним сертифікатом розробника.
+
+**Отримати всіх пацієнтів:**
+
+```bash
+curl -k https://localhost:7141/api/patients
+```
+
+**Отримати пацієнта за ID:**
+
+```bash
+curl -k https://localhost:7141/api/patients/1
+```
+
+**Створити пацієнта:**
+
+```bash
+curl -k -X POST https://localhost:7141/api/patients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "Іваненко Іван Петрович",
+    "phoneNumber": "+380991234567",
+    "email": "ivanenko@example.com",
+    "dateOfBirth": "1995-05-10"
+  }'
+```
+
+**Отримати всі записи разом із послугами:**
+
+```bash
+curl -k https://localhost:7141/api/appointments
+```
+
+**Отримати запис за ID разом із послугами:**
+
+```bash
+curl -k https://localhost:7141/api/appointments/1
+```
+
+**Створити запис разом із послугами:**
+
+```bash
+curl -k -X POST https://localhost:7141/api/appointments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientId": 1,
+    "doctorId": 1,
+    "appointmentDate": "2027-03-15T10:00:00",
+    "services": [
+      {
+        "serviceId": 101,
+        "serviceNameSnapshot": "Первинний огляд терапевта",
+        "priceSnapshot": 600.00,
+        "quantity": 1
+      },
+      {
+        "serviceId": 102,
+        "serviceNameSnapshot": "Додаткова консультація",
+        "priceSnapshot": 300.00,
+        "quantity": 1
+      }
+    ]
+  }'
+```
+
+### 7.4. Swagger UI
+
+Для перегляду доступних методів API та їхніх DTO використовується Swagger UI.
+
+Після запуску застосунку в режимі Development документація доступна за адресою:
+
+`https://localhost:7141/swagger`
+
+Swagger дозволяє переглядати маршрути, параметри, структуру запитів і відповідей API.
 
 ## 8. Використані технології
 
