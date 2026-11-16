@@ -14,12 +14,17 @@ public static class DependencyInjection
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Register generic repository.
+        // Generic repository
         services.AddScoped(
             typeof(IGenericRepository<>),
             typeof(GenericRepository<>));
 
-        // Register Unit of Work.
+        // Specialized medical service repository
+        services.AddScoped<
+            IMedicalServiceRepository,
+            MedicalServiceRepository>();
+
+        // Unit of Work
         services.AddScoped<IUnitOfWork, CatalogUnitOfWork>();
 
         return services;

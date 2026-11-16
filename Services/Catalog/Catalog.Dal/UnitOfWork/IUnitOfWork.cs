@@ -1,3 +1,4 @@
+
 using System.Data;
 using Catalog.Dal.Interfaces;
 using Catalog.Domain.Entities;
@@ -17,6 +18,8 @@ public interface IUnitOfWork : IAsyncDisposable
     IGenericRepository<ServicePackage> ServicePackages { get; }
 
     IGenericRepository<PackageService> PackageServices { get; }
+
+    IMedicalServiceRepository MedicalServiceQueries { get; }
 
     Task<int> SaveChangesAsync(
         CancellationToken ct = default);

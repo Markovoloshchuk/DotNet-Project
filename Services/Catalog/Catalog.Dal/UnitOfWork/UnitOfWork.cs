@@ -32,6 +32,9 @@ public sealed class UnitOfWork : IUnitOfWork
     public IGenericRepository<PackageService> PackageServices
         { get; }
 
+    public IMedicalServiceRepository MedicalServiceQueries
+        { get; }
+
     public UnitOfWork(
         CatalogDbContext context,
         IGenericRepository<ServiceCategory> serviceCategories,
@@ -39,7 +42,8 @@ public sealed class UnitOfWork : IUnitOfWork
         IGenericRepository<MedicalService> medicalServices,
         IGenericRepository<ServiceDetail> serviceDetails,
         IGenericRepository<ServicePackage> servicePackages,
-        IGenericRepository<PackageService> packageServices)
+        IGenericRepository<PackageService> packageServices,
+        IMedicalServiceRepository medicalServiceQueries)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -51,6 +55,7 @@ public sealed class UnitOfWork : IUnitOfWork
         ServiceDetails = serviceDetails;
         ServicePackages = servicePackages;
         PackageServices = packageServices;
+        MedicalServiceQueries = medicalServiceQueries;
     }
 
     public async Task<int> SaveChangesAsync(
@@ -83,7 +88,6 @@ public sealed class UnitOfWork : IUnitOfWork
         try
         {
             await _context.SaveChangesAsync(ct);
-
             await transaction.CommitAsync(ct);
         }
         catch
