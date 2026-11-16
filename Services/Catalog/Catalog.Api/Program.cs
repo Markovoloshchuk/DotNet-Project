@@ -1,4 +1,3 @@
-
 using Catalog.Bll;
 using Catalog.Dal;
 using Catalog.Dal.Persistence;
@@ -30,15 +29,17 @@ builder.Services.AddCatalogBll(
 // Controllers
 builder.Services.AddControllers();
 
-// OpenAPI
-builder.Services.AddOpenApi();
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 // HTTP pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
