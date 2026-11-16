@@ -1,5 +1,5 @@
-
 using Catalog.Dal.Interfaces;
+using Catalog.Dal.Models;
 using Catalog.Dal.Persistence;
 using Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +18,7 @@ public sealed class MedicalServiceRepository
         _context = context;
     }
 
-    // --------------------------------------------------
     // EAGER LOADING
-    // --------------------------------------------------
 
     public async Task<IReadOnlyList<MedicalService>>
         GetAllWithDetailsAsync(CancellationToken ct = default)
@@ -52,16 +50,13 @@ public sealed class MedicalServiceRepository
                 ct);
     }
 
-    // --------------------------------------------------
     // EXPLICIT LOADING
-    // --------------------------------------------------
 
     public async Task<MedicalService?>
         GetByIdWithExplicitLoadingAsync(
             long serviceId,
             CancellationToken ct = default)
     {
-        // The entity must be tracked for explicit loading.
         var service = await _context.MedicalServices
             .FirstOrDefaultAsync(
                 item => item.ServiceId == serviceId,
@@ -74,7 +69,6 @@ public sealed class MedicalServiceRepository
 
         var entry = _context.Entry(service);
 
-        // Load reference navigations separately.
         await entry
             .Reference(item => item.Category)
             .LoadAsync(ct);
@@ -87,7 +81,6 @@ public sealed class MedicalServiceRepository
             .Reference(item => item.Detail)
             .LoadAsync(ct);
 
-        // Load the collection and its related packages.
         await entry
             .Collection(item => item.PackageServices)
             .Query()
@@ -97,31 +90,59 @@ public sealed class MedicalServiceRepository
         return service;
     }
 
-    // --------------------------------------------------
-    // LINQ QUERIES
-    // --------------------------------------------------
+    // FILTERING, SORTING AND PAGINATION
 
-    public async Task<IReadOnlyList<MedicalService>> SearchAsync(
+    public async Task<PagedResult<MedicalService>> SearchAsync(
         string? name = null,
         long? categoryId = null,
         decimal? minPrice = null,
         decimal? maxPrice = null,
         bool? isActive = null,
+        int pageNumber = 1,
+        int pageSize = 10,
+        string sortBy = "serviceName",
+        bool sortDescending = false,
         CancellationToken ct = default)
     {
+        // Validate pagination parameters.
+        if (pageNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageNumber),
+                "Page number must be greater than zero.");
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageSize),
+                "Page size must be between 1 and 100.");
+        }
+
+        if (pageNumber > int.MaxValue / pageSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageNumber),
+                "Requested page number is too large.");
+        }
+
+        // Validate filters.
         if (categoryId.HasValue && categoryId.Value <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(categoryId));
+            throw new ArgumentOutOfRangeException(
+                nameof(categoryId));
         }
 
         if (minPrice.HasValue && minPrice.Value < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(minPrice));
+            throw new ArgumentOutOfRangeException(
+                nameof(minPrice));
         }
 
         if (maxPrice.HasValue && maxPrice.Value < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(maxPrice));
+            throw new ArgumentOutOfRangeException(
+                nameof(maxPrice));
         }
 
         if (minPrice.HasValue &&
@@ -132,11 +153,17 @@ public sealed class MedicalServiceRepository
                 "Minimum price cannot exceed maximum price.");
         }
 
+        // Build the base query.
         IQueryable<MedicalService> query =
             _context.MedicalServices
                 .AsNoTracking()
-                .Include(service => service.Category);
+                .Include(service => service.Category)
+                .Include(service => service.Equipment)
+                .Include(service => service.Detail)
+                .Include(service => service.PackageServices)
+                    .ThenInclude(packageService => packageService.Package);
 
+        // Apply filters.
         if (!string.IsNullOrWhiteSpace(name))
         {
             var searchName = name.Trim();
@@ -169,11 +196,68 @@ public sealed class MedicalServiceRepository
                 service.IsActive == isActive.Value);
         }
 
-        return await query
-            .OrderBy(service => service.ServiceName)
-            .ThenBy(service => service.Price)
+        // Count records before pagination.
+        var totalCount = await query.CountAsync(ct);
+
+        // Validate and normalize sorting field.
+        var sortField = string.IsNullOrWhiteSpace(sortBy)
+            ? "servicename"
+            : sortBy.Trim().ToLowerInvariant();
+
+        // Apply sorting.
+        IOrderedQueryable<MedicalService> orderedQuery =
+            sortField switch
+            {
+                "servicename" => sortDescending
+                    ? query.OrderByDescending(s => s.ServiceName)
+                    : query.OrderBy(s => s.ServiceName),
+
+                "price" => sortDescending
+                    ? query.OrderByDescending(s => s.Price)
+                    : query.OrderBy(s => s.Price),
+
+                "durationminutes" => sortDescending
+                    ? query.OrderByDescending(s => s.DurationMinutes)
+                    : query.OrderBy(s => s.DurationMinutes),
+
+                "isactive" => sortDescending
+                    ? query.OrderByDescending(s => s.IsActive)
+                    : query.OrderBy(s => s.IsActive),
+
+                "serviceid" => sortDescending
+                    ? query.OrderByDescending(s => s.ServiceId)
+                    : query.OrderBy(s => s.ServiceId),
+
+                _ => throw new ArgumentException(
+                    "Unsupported sort field. Allowed values: " +
+                    "serviceName, price, durationMinutes, " +
+                    "isActive, serviceId.",
+                    nameof(sortBy))
+            };
+
+        // Add a stable secondary order for consistent pagination.
+        if (sortField != "serviceid")
+        {
+            orderedQuery = orderedQuery.ThenBy(
+                service => service.ServiceId);
+        }
+
+        // Apply pagination in the database query.
+        var skip = (pageNumber - 1) * pageSize;
+
+        var items = await orderedQuery
+            .Skip(skip)
+            .Take(pageSize)
             .ToListAsync(ct);
+
+        return new PagedResult<MedicalService>(
+            items,
+            pageNumber,
+            pageSize,
+            totalCount);
     }
+
+    // TOP SERVICES BY PRICE
 
     public async Task<IReadOnlyList<MedicalService>>
         GetTopByPriceAsync(

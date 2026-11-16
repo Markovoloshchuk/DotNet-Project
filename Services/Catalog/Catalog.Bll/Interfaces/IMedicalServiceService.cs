@@ -1,4 +1,5 @@
 
+using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
 
 namespace Catalog.Bll.Interfaces;
@@ -12,7 +13,7 @@ public interface IMedicalServiceService
         long id,
         CancellationToken ct = default);
 
-    Task<IReadOnlyList<MedicalServiceDto>> SearchAsync(
+    Task<PagedResultDto<MedicalServiceDto>> SearchAsync(
         SearchMedicalServicesDto filter,
         CancellationToken ct = default);
 

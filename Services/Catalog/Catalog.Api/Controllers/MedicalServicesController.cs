@@ -1,3 +1,5 @@
+
+using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
 using Catalog.Bll.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -16,17 +18,20 @@ public sealed class MedicalServicesController : ApiControllerBase
         _service = service;
     }
 
-    // GET: api/MedicalServices
+    // GET: api/MedicalServices?pageNumber=1&pageSize=10
     [HttpGet]
     [ProducesResponseType(
-        typeof(IReadOnlyList<MedicalServiceDto>),
+        typeof(PagedResultDto<MedicalServiceDto>),
         StatusCodes.Status200OK)]
-    public Task<IActionResult> GetAll(CancellationToken ct)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IActionResult> GetAll(
+        [FromQuery] SearchMedicalServicesDto filter,
+        CancellationToken ct)
     {
         return ExecuteAsync(async () =>
         {
-            var services = await _service.GetAllAsync(ct);
-            return Ok(services);
+            var result = await _service.SearchAsync(filter, ct);
+            return Ok(result);
         });
     }
 
@@ -47,19 +52,20 @@ public sealed class MedicalServicesController : ApiControllerBase
         });
     }
 
-    // GET: api/MedicalServices/search?name=diagnostic&minPrice=100
+    // GET: api/MedicalServices/search?name=consultation&pageNumber=1&pageSize=10
     [HttpGet("search")]
     [ProducesResponseType(
-        typeof(IReadOnlyList<MedicalServiceDto>),
+        typeof(PagedResultDto<MedicalServiceDto>),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IActionResult> Search(
         [FromQuery] SearchMedicalServicesDto filter,
         CancellationToken ct)
     {
         return ExecuteAsync(async () =>
         {
-            var services = await _service.SearchAsync(filter, ct);
-            return Ok(services);
+            var result = await _service.SearchAsync(filter, ct);
+            return Ok(result);
         });
     }
 
@@ -83,7 +89,8 @@ public sealed class MedicalServicesController : ApiControllerBase
             }
 
             var services = await _service.GetTopByPriceAsync(
-                count, ct);
+                count,
+                ct);
 
             return Ok(services);
         });

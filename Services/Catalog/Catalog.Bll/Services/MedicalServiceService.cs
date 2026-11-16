@@ -1,5 +1,6 @@
 
 using AutoMapper;
+using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
 using Catalog.Bll.Interfaces;
 using Catalog.Dal.UnitOfWork;
@@ -36,7 +37,9 @@ public sealed class MedicalServiceService : IMedicalServiceService
         CancellationToken ct = default)
     {
         if (id <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(id));
+        }
 
         var service = await _unitOfWork.MedicalServiceQueries
             .GetByIdWithDetailsAsync(id, ct);
@@ -50,23 +53,34 @@ public sealed class MedicalServiceService : IMedicalServiceService
         return _mapper.Map<MedicalServiceDto>(service);
     }
 
-    public async Task<IReadOnlyList<MedicalServiceDto>> SearchAsync(
+    public async Task<PagedResultDto<MedicalServiceDto>> SearchAsync(
         SearchMedicalServicesDto filter,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(filter);
 
-        var services = await _unitOfWork.MedicalServiceQueries
+        var result = await _unitOfWork.MedicalServiceQueries
             .SearchAsync(
-                filter.Name,
-                filter.CategoryId,
-                filter.MinPrice,
-                filter.MaxPrice,
-                filter.IsActive,
-                ct);
+                name: filter.Name,
+                categoryId: filter.CategoryId,
+                minPrice: filter.MinPrice,
+                maxPrice: filter.MaxPrice,
+                isActive: filter.IsActive,
+                pageNumber: filter.PageNumber,
+                pageSize: filter.PageSize,
+                sortBy: filter.SortBy,
+                sortDescending: filter.SortDescending,
+                ct: ct);
 
-        return _mapper.Map<IReadOnlyList<MedicalServiceDto>>(
-            services);
+        return new PagedResultDto<MedicalServiceDto>
+        {
+            Items = _mapper.Map<IReadOnlyList<MedicalServiceDto>>(
+                result.Items),
+
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalCount = result.TotalCount
+        };
     }
 
     public async Task<IReadOnlyList<MedicalServiceDto>>
@@ -114,7 +128,9 @@ public sealed class MedicalServiceService : IMedicalServiceService
         ArgumentNullException.ThrowIfNull(dto);
 
         if (id <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(id));
+        }
 
         var service = await _unitOfWork.MedicalServices
             .GetByIdAsync(new object[] { id }, ct);
@@ -137,9 +153,13 @@ public sealed class MedicalServiceService : IMedicalServiceService
         service.ChangeDuration(dto.DurationMinutes);
 
         if (dto.IsActive)
+        {
             service.Activate();
+        }
         else
+        {
             service.Deactivate();
+        }
 
         await _unitOfWork.SaveChangesAsync(ct);
 
@@ -151,7 +171,9 @@ public sealed class MedicalServiceService : IMedicalServiceService
         CancellationToken ct = default)
     {
         if (id <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(id));
+        }
 
         var service = await _unitOfWork.MedicalServices
             .GetByIdAsync(new object[] { id }, ct);
@@ -188,7 +210,9 @@ public sealed class MedicalServiceService : IMedicalServiceService
         }
 
         if (!equipmentId.HasValue)
+        {
             return;
+        }
 
         if (equipmentId.Value <= 0)
         {
