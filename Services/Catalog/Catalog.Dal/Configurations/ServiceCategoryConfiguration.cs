@@ -1,3 +1,4 @@
+
 using Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -33,5 +34,25 @@ public sealed class ServiceCategoryConfiguration
         builder.HasIndex(x => x.CategoryName)
             .IsUnique()
             .HasDatabaseName("UX_ServiceCategories_CategoryName");
+
+        // Static reference data with fixed IDs.
+        builder.HasData(
+            new
+            {
+                CategoryId = 9001L,
+                CategoryName = "Emergency Medicine",
+                Description = "Emergency and urgent medical services.",
+                CreatedAt = new DateTime(
+                    2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new
+            {
+                CategoryId = 9002L,
+                CategoryName = "Preventive Medicine",
+                Description = "Preventive healthcare services.",
+                CreatedAt = new DateTime(
+                    2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            }
+        );
     }
 }

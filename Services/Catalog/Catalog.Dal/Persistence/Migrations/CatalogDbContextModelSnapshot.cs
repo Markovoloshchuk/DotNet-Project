@@ -80,7 +80,7 @@ namespace Catalog.Dal.Persistence.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ServiceName")
                         .IsRequired()
@@ -162,6 +162,22 @@ namespace Catalog.Dal.Persistence.Migrations
                         .HasDatabaseName("UX_ServiceCategories_CategoryName");
 
                     b.ToTable("ServiceCategories", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            CategoryId = 9001L,
+                            CategoryName = "Emergency Medicine",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Emergency and urgent medical services."
+                        },
+                        new
+                        {
+                            CategoryId = 9002L,
+                            CategoryName = "Preventive Medicine",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Preventive healthcare services."
+                        });
                 });
 
             modelBuilder.Entity("Catalog.Domain.Entities.ServiceDetail", b =>
@@ -209,7 +225,7 @@ namespace Catalog.Dal.Persistence.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(10,2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("PackageId");
 

@@ -1,3 +1,4 @@
+
 using Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -30,10 +31,12 @@ public sealed class ServicePackageConfiguration
             .HasMaxLength(150)
             .IsRequired();
 
+        // Грошове поле: точність decimal(18,2)
         builder.Property(x => x.TotalPrice)
-            .HasColumnType("decimal(10,2)")
+            .HasColumnType("decimal(18,2)")
             .IsRequired();
 
+        // Відсоток знижки не є грошовим полем.
         builder.Property(x => x.DiscountPercentage)
             .HasColumnType("decimal(5,2)")
             .HasDefaultValue(0.00m)

@@ -1,3 +1,4 @@
+
 using Catalog.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -36,8 +37,9 @@ public sealed class MedicalServiceConfiguration
             .HasMaxLength(150)
             .IsRequired();
 
+        // Грошове поле: точність decimal(18,2)
         builder.Property(x => x.Price)
-            .HasColumnType("decimal(10,2)")
+            .HasColumnType("decimal(18,2)")
             .IsRequired();
 
         builder.Property(x => x.DurationMinutes)
@@ -61,7 +63,6 @@ public sealed class MedicalServiceConfiguration
             .HasConstraintName("FK_MedicalServices_Categories");
 
         // Equipment 1:N MedicalService
-        // При видаленні обладнання EquipmentId стає NULL.
         builder.HasOne(x => x.Equipment)
             .WithMany(x => x.MedicalServices)
             .HasForeignKey(x => x.EquipmentId)

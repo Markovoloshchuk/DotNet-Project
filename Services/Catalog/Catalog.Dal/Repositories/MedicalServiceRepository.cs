@@ -279,4 +279,48 @@ public sealed class MedicalServiceRepository
             .Take(count)
             .ToListAsync(ct);
     }
+
+    // LINQ M:N через проміжну сутність PackageService
+    public async Task<IReadOnlyList<PackageService>>
+        GetPackageServicesByPackageIdAsync(
+            long packageId,
+            int? minQuantity = null,
+            CancellationToken ct = default)
+    {
+        if (packageId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(packageId),
+                "Package ID must be greater than zero.");
+        }
+
+        if (minQuantity.HasValue && minQuantity.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(minQuantity),
+                "Minimum quantity must be greater than zero.");
+        }
+
+        // Починаємо запит саме з проміжної таблиці M:N.
+        IQueryable<PackageService> query =
+            _context.PackageServices
+                .AsNoTracking()
+                .Where(item => item.PackageId == packageId);
+
+        // Фільтрація за власним полем проміжної сутності.
+        if (minQuantity.HasValue)
+        {
+            query = query.Where(
+                item => item.Quantity >= minQuantity.Value);
+        }
+
+        // Завантажуємо пов'язані пакет і медичну послугу.
+        return await query
+            .Include(item => item.Package)
+            .Include(item => item.Service)
+            .OrderBy(item => item.Service.ServiceName)
+            .ThenBy(item => item.ServiceId)
+            .ToListAsync(ct);
+    }
+
 }

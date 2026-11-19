@@ -1,3 +1,4 @@
+
 using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
@@ -7,12 +8,14 @@ using Catalog.Dal;
 using Catalog.Dal.Persistence;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
+// Serilog configuration
 builder.Host.UseSerilog((_, _, loggerConfiguration) =>
 {
     loggerConfiguration
@@ -42,9 +45,26 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Connection string 'CatalogDb' was not found.");
 }
 
-// Entity Framework Core
-builder.Services.AddDbContext<CatalogDbContext>(options =>
-    options.UseSqlServer(connectionString));
+// Entity Framework Core + SQL command logging
+builder.Services.AddDbContext<CatalogDbContext>(
+    (serviceProvider, options) =>
+    {
+        options.UseSqlServer(connectionString);
+
+        var efLogger = serviceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Catalog.EFCore.Database.Command");
+
+        options.LogTo(
+            message => efLogger.LogInformation(
+                "{EfCoreSqlCommand}",
+                message.TrimEnd()),
+            new[]
+            {
+                DbLoggerCategory.Database.Command.Name
+            },
+            LogLevel.Information);
+    });
 
 // Data Access Layer
 builder.Services.AddCatalogDal();
@@ -78,18 +98,26 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Seed development database
+// Apply migrations before programmatic seeding.
+// Both operations run only in Development.
 if (app.Environment.IsDevelopment())
 {
     await using var scope = app.Services.CreateAsyncScope();
 
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<CatalogDbContext>();
+
+    // Apply all pending EF Core migrations.
+    await dbContext.Database.MigrateAsync();
+
+    // Seed additional development data.
     var seeder = scope.ServiceProvider
         .GetRequiredService<CatalogDbSeeder>();
 
     await seeder.SeedAsync();
 }
 
-// Request logging
+// HTTP request logging
 app.UseSerilogRequestLogging();
 
 // Global exception handling middleware

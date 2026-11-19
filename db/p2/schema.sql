@@ -29,7 +29,7 @@ CREATE TABLE MedicalServices (
     CategoryId BIGINT NOT NULL,
     EquipmentId BIGINT NULL,
     ServiceName NVARCHAR(150) NOT NULL,
-    Price DECIMAL(10,2) NOT NULL CHECK (Price >= 0),
+    Price DECIMAL(18,2) NOT NULL CHECK (Price >= 0),
     DurationMinutes INT NOT NULL CHECK (DurationMinutes > 0),
     IsActive BIT NOT NULL DEFAULT 1,
 
@@ -51,7 +51,7 @@ CREATE TABLE ServiceDetails (
 CREATE TABLE ServicePackages (
     PackageId BIGINT IDENTITY(1,1) PRIMARY KEY,
     PackageName NVARCHAR(150) NOT NULL,
-    TotalPrice DECIMAL(10,2) NOT NULL CHECK (TotalPrice >= 0),
+    TotalPrice DECIMAL(18,2) NOT NULL CHECK (TotalPrice >= 0),
     DiscountPercentage DECIMAL(5,2) NOT NULL DEFAULT 0.00 CHECK (DiscountPercentage >= 0 AND DiscountPercentage <= 100)
 );
 
