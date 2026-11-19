@@ -1,4 +1,3 @@
-
 using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
 using Catalog.Bll.Interfaces;
@@ -8,7 +7,7 @@ namespace Catalog.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class MedicalServicesController : ApiControllerBase
+public sealed class MedicalServicesController : ControllerBase
 {
     private readonly IMedicalServiceService _service;
 
@@ -24,15 +23,12 @@ public sealed class MedicalServicesController : ApiControllerBase
         typeof(PagedResultDto<MedicalServiceDto>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> GetAll(
+    public async Task<IActionResult> GetAll(
         [FromQuery] SearchMedicalServicesDto filter,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            var result = await _service.SearchAsync(filter, ct);
-            return Ok(result);
-        });
+        var result = await _service.SearchAsync(filter, ct);
+        return Ok(result);
     }
 
     // GET: api/MedicalServices/5
@@ -41,32 +37,26 @@ public sealed class MedicalServicesController : ApiControllerBase
         typeof(MedicalServiceDto),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public Task<IActionResult> GetById(
+    public async Task<IActionResult> GetById(
         long id,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            var medicalService = await _service.GetByIdAsync(id, ct);
-            return Ok(medicalService);
-        });
+        var medicalService = await _service.GetByIdAsync(id, ct);
+        return Ok(medicalService);
     }
 
-    // GET: api/MedicalServices/search?name=consultation&pageNumber=1&pageSize=10
+    // GET: api/MedicalServices/search?name=consultation
     [HttpGet("search")]
     [ProducesResponseType(
         typeof(PagedResultDto<MedicalServiceDto>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> Search(
+    public async Task<IActionResult> Search(
         [FromQuery] SearchMedicalServicesDto filter,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            var result = await _service.SearchAsync(filter, ct);
-            return Ok(result);
-        });
+        var result = await _service.SearchAsync(filter, ct);
+        return Ok(result);
     }
 
     // GET: api/MedicalServices/top-by-price?count=5
@@ -75,25 +65,21 @@ public sealed class MedicalServicesController : ApiControllerBase
         typeof(IReadOnlyList<MedicalServiceDto>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> GetTopByPrice(
+    public async Task<IActionResult> GetTopByPrice(
         [FromQuery] int count = 5,
         CancellationToken ct = default)
     {
-        return ExecuteAsync(async () =>
+        if (count is < 1 or > 100)
         {
-            if (count <= 0 || count > 100)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(count),
-                    "Count must be between 1 and 100.");
-            }
+            ModelState.AddModelError(
+                nameof(count),
+                "Count must be between 1 and 100.");
 
-            var services = await _service.GetTopByPriceAsync(
-                count,
-                ct);
+            return ValidationProblem(ModelState);
+        }
 
-            return Ok(services);
-        });
+        var services = await _service.GetTopByPriceAsync(count, ct);
+        return Ok(services);
     }
 
     // POST: api/MedicalServices
@@ -103,19 +89,16 @@ public sealed class MedicalServicesController : ApiControllerBase
         StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public Task<IActionResult> Create(
+    public async Task<IActionResult> Create(
         [FromBody] CreateMedicalServiceDto dto,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            var created = await _service.CreateAsync(dto, ct);
+        var created = await _service.CreateAsync(dto, ct);
 
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = created.ServiceId },
-                created);
-        });
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = created.ServiceId },
+            created);
     }
 
     // PUT: api/MedicalServices/5
@@ -125,30 +108,24 @@ public sealed class MedicalServicesController : ApiControllerBase
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public Task<IActionResult> Update(
+    public async Task<IActionResult> Update(
         long id,
         [FromBody] UpdateMedicalServiceDto dto,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            var updated = await _service.UpdateAsync(id, dto, ct);
-            return Ok(updated);
-        });
+        var updated = await _service.UpdateAsync(id, dto, ct);
+        return Ok(updated);
     }
 
     // DELETE: api/MedicalServices/5
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public Task<IActionResult> Delete(
+    public async Task<IActionResult> Delete(
         long id,
         CancellationToken ct)
     {
-        return ExecuteAsync(async () =>
-        {
-            await _service.DeleteAsync(id, ct);
-            return NoContent();
-        });
+        await _service.DeleteAsync(id, ct);
+        return NoContent();
     }
 }
