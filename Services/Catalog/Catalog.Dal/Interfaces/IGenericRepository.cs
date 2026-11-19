@@ -1,3 +1,5 @@
+using Catalog.Domain.Specifications;
+
 namespace Catalog.Dal.Interfaces;
 
 public interface IGenericRepository<TEntity>
@@ -8,6 +10,10 @@ public interface IGenericRepository<TEntity>
         CancellationToken ct = default);
 
     Task<IReadOnlyList<TEntity>> GetAllAsync(
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<TEntity>> ListAsync(
+        ISpecification<TEntity> specification,
         CancellationToken ct = default);
 
     Task AddAsync(

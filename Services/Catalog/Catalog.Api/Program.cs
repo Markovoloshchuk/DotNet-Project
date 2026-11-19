@@ -1,3 +1,4 @@
+using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
 using Catalog.Api.Validators;
@@ -52,6 +53,9 @@ builder.Services.AddCatalogDal();
 builder.Services.AddCatalogBll(
     builder.Configuration["AutoMapper:LicenseKey"]);
 
+// Database seeder
+builder.Services.AddScoped<CatalogDbSeeder>();
+
 // FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<
     CreateMedicalServiceDtoValidator>();
@@ -73,6 +77,17 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Seed development database
+if (app.Environment.IsDevelopment())
+{
+    await using var scope = app.Services.CreateAsyncScope();
+
+    var seeder = scope.ServiceProvider
+        .GetRequiredService<CatalogDbSeeder>();
+
+    await seeder.SeedAsync();
+}
 
 // Request logging
 app.UseSerilogRequestLogging();

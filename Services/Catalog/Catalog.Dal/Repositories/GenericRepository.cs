@@ -1,5 +1,7 @@
 using Catalog.Dal.Interfaces;
 using Catalog.Dal.Persistence;
+using Catalog.Dal.Specifications;
+using Catalog.Domain.Specifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace Catalog.Dal.Repositories;
@@ -41,6 +43,19 @@ public class GenericRepository<TEntity>
         return await _dbSet
             .AsNoTracking()
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<TEntity>> ListAsync(
+        ISpecification<TEntity> specification,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(specification);
+
+        var query = SpecificationEvaluator<TEntity>.GetQuery(
+            _dbSet.AsNoTracking(),
+            specification);
+
+        return await query.ToListAsync(ct);
     }
 
     public async Task AddAsync(
