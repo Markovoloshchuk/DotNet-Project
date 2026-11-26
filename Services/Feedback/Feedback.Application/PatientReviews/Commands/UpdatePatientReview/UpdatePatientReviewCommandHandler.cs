@@ -1,6 +1,5 @@
-using Feedback.Application.Common.Interfaces;
+using Feedback.Application.Common.Exceptions;
 using Feedback.Domain.Interfaces;
-using Feedback.Domain.Exceptions;
 using MongoDB.Bson;
 using MediatR;
 
@@ -16,10 +15,13 @@ public sealed class UpdatePatientReviewCommandHandler(
     {
         var id = ObjectId.Parse(request.Id);
 
-        var review = await repository.GetByIdAsync(id, cancellationToken);
+        var review = await repository.GetByIdAsync(
+            id,
+            cancellationToken);
 
         if (review is null)
-            throw new DomainException("Patient review was not found.");
+            throw new NotFoundException(
+                "Patient review was not found.");
 
         if (review.Version != request.ExpectedVersion)
             return false;
@@ -27,6 +29,8 @@ public sealed class UpdatePatientReviewCommandHandler(
         review.UpdateRating(request.Rating);
         review.UpdateComment(request.Comment);
 
-        return await repository.UpdateAsync(review, cancellationToken);
+        return await repository.UpdateAsync(
+            review,
+            cancellationToken);
     }
 }

@@ -1,9 +1,9 @@
 using Feedback.Domain.Entities;
 using Feedback.Domain.Interfaces;
 using Feedback.Infrastructure.Settings;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Options;
 
 namespace Feedback.Infrastructure.Repositories;
 
@@ -20,11 +20,11 @@ public sealed class DoctorDiscussionRepository
             options.Value.DoctorDiscussionsCollection);
     }
 
-    public Task<DoctorDiscussion?> GetByIdAsync(
+    public async Task<DoctorDiscussion?> GetByIdAsync(
         ObjectId id,
         CancellationToken ct = default)
     {
-        return _collection
+        return await _collection
             .Find(x => x.Id == id)
             .FirstOrDefaultAsync(ct);
     }

@@ -1,9 +1,9 @@
 using Feedback.Domain.Entities;
 using Feedback.Domain.Interfaces;
 using Feedback.Infrastructure.Settings;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Options;
 
 namespace Feedback.Infrastructure.Repositories;
 
@@ -20,20 +20,20 @@ public sealed class ConsultationNoteRepository
             options.Value.ConsultationNotesCollection);
     }
 
-    public Task<ConsultationNote?> GetByIdAsync(
+    public async Task<ConsultationNote?> GetByIdAsync(
         ObjectId id,
         CancellationToken ct = default)
     {
-        return _collection
+        return await _collection
             .Find(x => x.Id == id)
             .FirstOrDefaultAsync(ct);
     }
 
-    public Task<ConsultationNote?> GetByAppointmentIdAsync(
+    public async Task<ConsultationNote?> GetByAppointmentIdAsync(
         long appointmentId,
         CancellationToken ct = default)
     {
-        return _collection
+        return await _collection
             .Find(x => x.AppointmentId == appointmentId)
             .FirstOrDefaultAsync(ct);
     }
