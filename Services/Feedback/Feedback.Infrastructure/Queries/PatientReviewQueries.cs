@@ -1,3 +1,4 @@
+using AutoMapper;
 using Feedback.Application.Common.Interfaces;
 using Feedback.Application.Common.Models;
 using Feedback.Domain.Entities;
@@ -7,14 +8,17 @@ using MongoDB.Driver;
 
 namespace Feedback.Infrastructure.Queries;
 
-public sealed class PatientReviewQueries
-    : IPatientReviewQueries
+public sealed class PatientReviewQueries : IPatientReviewQueries
 {
     private readonly IMongoCollection<PatientReview> _collection;
+    private readonly IMapper _mapper;
 
-    public PatientReviewQueries(MongoDbContext context)
+    public PatientReviewQueries(
+        MongoDbContext context,
+        IMapper mapper)
     {
         _collection = context.PatientReviews;
+        _mapper = mapper;
     }
 
     public async Task<PatientReviewDto?> GetByIdAsync(
@@ -28,7 +32,9 @@ public sealed class PatientReviewQueries
             .Find(x => x.Id == objectId)
             .FirstOrDefaultAsync(ct);
 
-        return review is null ? null : MapToDto(review);
+        return review is null
+            ? null
+            : _mapper.Map<PatientReviewDto>(review);
     }
 
     public async Task<PagedResult<PatientReviewDto>> GetListAsync(
@@ -46,7 +52,6 @@ public sealed class PatientReviewQueries
             throw new ArgumentOutOfRangeException(nameof(pageSize));
 
         var builder = Builders<PatientReview>.Filter;
-
         var filters = new List<FilterDefinition<PatientReview>>();
 
         if (patientId.HasValue)
@@ -88,7 +93,7 @@ public sealed class PatientReviewQueries
             .ToListAsync(ct);
 
         var items = reviews
-            .Select(MapToDto)
+            .Select(review => _mapper.Map<PatientReviewDto>(review))
             .ToList();
 
         return new PagedResult<PatientReviewDto>(
@@ -97,23 +102,4 @@ public sealed class PatientReviewQueries
             pageSize,
             totalCount);
     }
-
-    private static PatientReviewDto MapToDto(
-        PatientReview review)
-    {
-        return new PatientReviewDto(
-            review.Id.ToString(),
-            review.ReviewId,
-            review.PatientId,
-            review.DoctorId,
-            review.Rating.Value,
-            review.Comment,
-            review.CreatedAt,
-            review.UpdatedAt,
-            review.ClinicResponse?.Message,
-            review.HelpfulVotes,
-            review.VerifiedVisit,
-            review.Tags.ToArray(),
-            review.Version);
-    }
-}
+}   

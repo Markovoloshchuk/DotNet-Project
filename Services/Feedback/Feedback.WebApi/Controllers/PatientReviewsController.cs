@@ -1,3 +1,4 @@
+using System.Globalization;
 using Feedback.Application.Common.Models;
 using Feedback.Application.PatientReviews.Commands.CreatePatientReview;
 using Feedback.Application.PatientReviews.Commands.DeletePatientReview;
@@ -55,11 +56,16 @@ public sealed class PatientReviewsController(
         if (review is null)
             return NotFound();
 
+        Response.Headers["ETag"] =
+            $"\"{review.Version}\"";
+
         return Ok(review);
     }
 
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreatePatientReviewRequest request,
         CancellationToken cancellationToken)
@@ -85,17 +91,27 @@ public sealed class PatientReviewsController(
 
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(
         string id,
         [FromBody] UpdatePatientReviewRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken)
     {
+        if (!TryParseVersionTag(ifMatch, out var expectedVersion))
+        {
+            return BadRequest(new
+            {
+                message = "A valid If-Match header is required. Expected format: \"0\"."
+            });
+        }
+
         var updated = await sender.Send(
             new UpdatePatientReviewCommand(
                 id,
-                request.ExpectedVersion,
+                expectedVersion,
                 request.Rating,
                 request.Comment),
             cancellationToken);
@@ -120,7 +136,6 @@ public sealed class PatientReviewsController(
         [FromQuery] int expectedVersion,
         CancellationToken cancellationToken)
     {
-        // Перевіряємо, чи існує відгук.
         var existing = await sender.Send(
             new GetPatientReviewByIdQuery(id),
             cancellationToken);
@@ -143,5 +158,35 @@ public sealed class PatientReviewsController(
         }
 
         return NoContent();
+    }
+
+    private static bool TryParseVersionTag(
+        string? value,
+        out int version)
+    {
+        version = 0;
+
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var tag = value.Trim();
+
+        // Підтримуємо лише сильний ETag у форматі "0".
+        if (tag.Length < 3 ||
+            tag[0] != '"' ||
+            tag[^1] != '"' ||
+            tag.StartsWith("W/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var versionValue = tag[1..^1];
+
+        return int.TryParse(
+            versionValue,
+            NumberStyles.None,
+            CultureInfo.InvariantCulture,
+            out version)
+            && version >= 0;
     }
 }

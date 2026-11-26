@@ -27,7 +27,7 @@ public static class DependencyInjection
                 FeedbackDatabaseSettings.SectionName));
 
         // MongoDB client
-        services.AddSingleton<IMongoClient>(serviceProvider =>
+        services.AddSingleton<MongoClient>(serviceProvider =>
         {
             var settings = serviceProvider
                 .GetRequiredService<IOptions<FeedbackDatabaseSettings>>()
@@ -35,6 +35,9 @@ public static class DependencyInjection
 
             return new MongoClient(settings.ConnectionString);
         });
+
+        services.AddSingleton<IMongoClient>(serviceProvider =>
+            serviceProvider.GetRequiredService<MongoClient>());
 
         // MongoDB context
         services.AddSingleton<MongoDbContext>();

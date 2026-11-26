@@ -3,6 +3,7 @@ using Feedback.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
 
 namespace Feedback.WebApi.ExceptionHandling;
 
@@ -17,7 +18,7 @@ public sealed class GlobalExceptionHandler(
     {
         var (statusCode, title, detail) = exception switch
         {
-            ValidationException validationException =>
+            ValidationException =>
             (
                 StatusCodes.Status400BadRequest,
                 "Validation failed",
@@ -31,11 +32,42 @@ public sealed class GlobalExceptionHandler(
                 exception.Message
             ),
 
+            ConflictException =>
+            (
+                StatusCodes.Status409Conflict,
+                "Conflict",
+                exception.Message
+            ),
+
             DomainException =>
             (
                 StatusCodes.Status400BadRequest,
                 "Domain rule violation",
                 exception.Message
+            ),
+
+            MongoWriteException
+            {
+                WriteError.Category: ServerErrorCategory.DuplicateKey
+            } =>
+            (
+                StatusCodes.Status409Conflict,
+                "Duplicate resource",
+                "A resource with the same unique key already exists."
+            ),
+
+            MongoWriteException =>
+            (
+                StatusCodes.Status400BadRequest,
+                "Database write failed",
+                "The database rejected the write operation."
+            ),
+
+            MongoConnectionException =>
+            (
+                StatusCodes.Status503ServiceUnavailable,
+                "Database unavailable",
+                "The database connection is currently unavailable."
             ),
 
             _ =>
