@@ -1,10 +1,9 @@
 using Feedback.Application.Common.Interfaces;
 using Feedback.Application.Common.Models;
 using Feedback.Domain.Entities;
-using Feedback.Infrastructure.Settings;
+using Feedback.Infrastructure.Persistence;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Microsoft.Extensions.Options;
 
 namespace Feedback.Infrastructure.Queries;
 
@@ -13,12 +12,9 @@ public sealed class PatientReviewQueries
 {
     private readonly IMongoCollection<PatientReview> _collection;
 
-    public PatientReviewQueries(
-        IMongoDatabase database,
-        IOptions<FeedbackDatabaseSettings> options)
+    public PatientReviewQueries(MongoDbContext context)
     {
-        _collection = database.GetCollection<PatientReview>(
-            options.Value.PatientReviewsCollection);
+        _collection = context.PatientReviews;
     }
 
     public async Task<PatientReviewDto?> GetByIdAsync(
@@ -50,6 +46,7 @@ public sealed class PatientReviewQueries
             throw new ArgumentOutOfRangeException(nameof(pageSize));
 
         var builder = Builders<PatientReview>.Filter;
+
         var filters = new List<FilterDefinition<PatientReview>>();
 
         if (patientId.HasValue)
@@ -68,9 +65,7 @@ public sealed class PatientReviewQueries
 
         if (rating.HasValue)
         {
-            filters.Add(builder.Eq(
-                x => x.Rating.Value,
-                rating.Value));
+            filters.Add(builder.Eq("rating", rating.Value));
         }
 
         var filter = filters.Count == 0

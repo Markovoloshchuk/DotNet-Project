@@ -1,7 +1,6 @@
 using Feedback.Domain.Entities;
 using Feedback.Domain.Interfaces;
-using Feedback.Infrastructure.Settings;
-using Microsoft.Extensions.Options;
+using Feedback.Infrastructure.Persistence;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -12,12 +11,9 @@ public sealed class ConsultationNoteRepository
 {
     private readonly IMongoCollection<ConsultationNote> _collection;
 
-    public ConsultationNoteRepository(
-        IMongoDatabase database,
-        IOptions<FeedbackDatabaseSettings> options)
+    public ConsultationNoteRepository(MongoDbContext context)
     {
-        _collection = database.GetCollection<ConsultationNote>(
-            options.Value.ConsultationNotesCollection);
+        _collection = context.ConsultationNotes;
     }
 
     public async Task<ConsultationNote?> GetByIdAsync(

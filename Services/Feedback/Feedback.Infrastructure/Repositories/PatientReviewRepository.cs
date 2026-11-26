@@ -1,7 +1,6 @@
 using Feedback.Domain.Entities;
 using Feedback.Domain.Interfaces;
-using Feedback.Infrastructure.Settings;
-using Microsoft.Extensions.Options;
+using Feedback.Infrastructure.Persistence;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -12,12 +11,9 @@ public sealed class PatientReviewRepository
 {
     private readonly IMongoCollection<PatientReview> _collection;
 
-    public PatientReviewRepository(
-        IMongoDatabase database,
-        IOptions<FeedbackDatabaseSettings> options)
+    public PatientReviewRepository(MongoDbContext context)
     {
-        _collection = database.GetCollection<PatientReview>(
-            options.Value.PatientReviewsCollection);
+        _collection = context.PatientReviews;
     }
 
     public async Task<PatientReview?> GetByIdAsync(

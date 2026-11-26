@@ -1,8 +1,9 @@
-using Feedback.Domain.Interfaces;
 using Feedback.Application.Common.Interfaces;
+using Feedback.Domain.Interfaces;
 using Feedback.Infrastructure.Persistence;
 using Feedback.Infrastructure.Queries;
 using Feedback.Infrastructure.Repositories;
+using Feedback.Infrastructure.Seeding;
 using Feedback.Infrastructure.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,12 +18,15 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // BSON mappings
         FeedbackMongoMappings.Register();
 
+        // MongoDB settings
         services.Configure<FeedbackDatabaseSettings>(
             configuration.GetSection(
                 FeedbackDatabaseSettings.SectionName));
 
+        // MongoDB client
         services.AddSingleton<IMongoClient>(serviceProvider =>
         {
             var settings = serviceProvider
@@ -32,18 +36,10 @@ public static class DependencyInjection
             return new MongoClient(settings.ConnectionString);
         });
 
-        services.AddSingleton<IMongoDatabase>(serviceProvider =>
-        {
-            var settings = serviceProvider
-                .GetRequiredService<IOptions<FeedbackDatabaseSettings>>()
-                .Value;
+        // MongoDB context
+        services.AddSingleton<MongoDbContext>();
 
-            var client = serviceProvider
-                .GetRequiredService<IMongoClient>();
-
-            return client.GetDatabase(settings.DatabaseName);
-        });
-
+        // Repositories
         services.AddScoped<
             IPatientReviewRepository,
             PatientReviewRepository>();
@@ -56,9 +52,19 @@ public static class DependencyInjection
             IConsultationNoteRepository,
             ConsultationNoteRepository>();
 
+        // Queries
         services.AddScoped<
             IPatientReviewQueries,
             PatientReviewQueries>();
+
+        // Seeders
+        services.AddScoped<IDataSeeder, PatientReviewSeeder>();
+        services.AddScoped<IDataSeeder, DoctorDiscussionSeeder>();
+        services.AddScoped<IDataSeeder, ConsultationNoteSeeder>();
+
+        // Hosted services: indexes first, seeding second
+        services.AddHostedService<IndexCreationService>();
+        services.AddHostedService<DataSeedingHostedService>();
 
         return services;
     }

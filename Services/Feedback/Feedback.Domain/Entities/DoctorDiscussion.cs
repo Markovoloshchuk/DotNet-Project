@@ -79,15 +79,23 @@ public sealed class DoctorDiscussion : BaseEntity
         long doctorRefId,
         string text)
     {
-        if (_comments.Any(c => c.CommentId == commentId))
-            throw new DomainException(
-                "Comment with this ID already exists.");
-
-        _comments.Add(new DiscussionComment(
+        AddComment(new DiscussionComment(
             commentId,
             doctorRefId,
             text));
+    }
 
+    public void AddComment(DiscussionComment comment)
+    {
+        ArgumentNullException.ThrowIfNull(comment);
+
+        if (_comments.Any(c => c.CommentId == comment.CommentId))
+        {
+            throw new DomainException(
+                "Comment with this ID already exists.");
+        }
+
+        _comments.Add(comment);
         Touch();
     }
 
