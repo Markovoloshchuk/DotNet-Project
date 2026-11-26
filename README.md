@@ -443,3 +443,72 @@ Aspire передає рядок підключення до API через ко
 **Репозиторій:** DotNet-Project  
 **Предметна область:** система управління медичною клінікою «Арніка»  
 **Основний сервіс:** Appointments
+
+---
+
+# Практичне заняття №04. Сервіс відгуків та обговорень (Feedback)
+
+## 1. Мета роботи
+
+Реалізувати сервіс Feedback із використанням Clean Architecture, Domain-Driven Design, CQRS, MediatR, FluentValidation та MongoDB.
+
+Сервіс забезпечує зберігання відгуків пацієнтів, обговорень лікарів, коментарів і консультаційних нотаток.
+
+## 2. Архітектура
+
+Сервіс Feedback поділений на чотири шари:
+
+| Проєкт | Призначення |
+|---|---|
+| `Feedback.Domain` | Доменні сутності, Value Objects, бізнес-правила, інтерфейси репозиторіїв |
+| `Feedback.Application` | CQRS-команди та запити, handlers, validators, DTO, pipeline behaviors |
+| `Feedback.Infrastructure` | MongoDB-контекст, репозиторії, BSON-мапінг, індекси та seed-дані |
+| `Feedback.WebApi` | ASP.NET Core Web API, контролери, HTTP-контракти, Swagger та обробка помилок |
+
+Основні доменні сутності:
+
+- `PatientReview` — відгук пацієнта про лікаря;
+- `DoctorDiscussion` — обговорення лікарями клінічних випадків;
+- `DiscussionComment` — коментар до обговорення;
+- `ConsultationNote` — підсумок консультації та рекомендації.
+
+Для оцінки відгуку використовується Value Object `Rating`, для відповіді клініки — `ClinicResponse`.
+
+У Application реалізовано CQRS через MediatR та валідацію FluentValidation. Pipeline behaviors забезпечують логування, валідацію, вимірювання часу виконання та обробку винятків.
+
+Infrastructure використовує MongoDB.Driver, окремі репозиторії для кожної сутності, автоматичне створення індексів та початкове наповнення даними.
+
+## 3. Структура бази даних
+
+Використовується MongoDB із базою даних `ClinicFeedbackDB`.
+
+Основні колекції:
+
+| Колекція | Призначення |
+|---|---|
+| `PatientReviews` | Відгуки пацієнтів, рейтинги, відповіді клініки та теги |
+| `DoctorDiscussions` | Обговорення лікарів, теги та вкладені коментарі |
+| `ConsultationNotes` | Підсумки консультацій та рекомендації |
+
+Для оптимізації пошуку створюються індекси, зокрема унікальні індекси за `reviewId`, `discussionId`, `noteId` та `appointmentId`.
+
+Скрипти створення колекцій і початкових даних:
+
+- `db/p3/collections.js` — створення колекцій і JSON Schema validators;
+- `db/p3/seed.js` — ідемпотентне початкове наповнення.
+
+Додатково застосунок автоматично запускає seeders та створення індексів під час старту.
+
+## 4. Запуск MongoDB
+
+Потрібен встановлений Docker.
+
+Створення та запуск контейнера:
+
+```bash
+docker run -d \
+  --name clinic-feedback-mongo \
+  --restart unless-stopped \
+  -p 127.0.0.1:27017:27017 \
+  -v clinic-feedback-data:/data/db \
+  mongo:8.0
