@@ -2,10 +2,21 @@ using Feedback.Application;
 using Feedback.Application.Common.Mappings;
 using Feedback.Infrastructure;
 using Feedback.WebApi.ExceptionHandling;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.AddServiceDefaults();
+
+// MongoDB connection from Aspire
+var feedbackConnectionString =
+    builder.Configuration.GetConnectionString("FeedbackDb");
+
+if (!string.IsNullOrWhiteSpace(feedbackConnectionString))
+{
+    builder.Configuration["FeedbackDatabase:ConnectionString"] =
+        feedbackConnectionString;
+}
 
 // Controllers
 builder.Services.AddControllers();
@@ -40,6 +51,10 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
+// Correlation ID middleware
+app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Exception handling
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
