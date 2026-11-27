@@ -9,8 +9,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.6.5" />
-    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.6.5" />
+    <None Include="..\db\p1\schema.sql"
+          Link="db\p1\schema.sql"
+          CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="..\db\p1\procedures.sql"
+          Link="db\p1\procedures.sql"
+          CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="..\db\p1\seed.sql"
+          Link="db\p1\seed.sql"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -21,5 +30,10 @@
     <AspireUseCliBundle>true</AspireUseCliBundle>
     <UserSecretsId>180b3a03-bf6f-40ea-aefa-e9d532e2d748</UserSecretsId>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.6.5" />
+    <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.6.5" />
+  </ItemGroup>
 
 </Project>

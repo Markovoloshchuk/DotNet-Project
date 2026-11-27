@@ -1,5 +1,20 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// SQL initialization scripts for Appointments
+var scriptsDirectory = Path.Combine(
+    AppContext.BaseDirectory,
+    "db",
+    "p1");
+
+var appointmentsCreationScript = string.Join(
+    Environment.NewLine,
+    File.ReadAllText(
+        Path.Combine(scriptsDirectory, "schema.sql")),
+    File.ReadAllText(
+        Path.Combine(scriptsDirectory, "procedures.sql")),
+    File.ReadAllText(
+        Path.Combine(scriptsDirectory, "seed.sql")));
+
 // SQL Server
 var sqlPassword = builder.AddParameter(
     "sql-password",
@@ -10,7 +25,12 @@ var sql = builder.AddSqlServer(
         password: sqlPassword)
     .WithDataVolume();
 
-var appointmentsDb = sql.AddDatabase("AppointmentsDb");
+// Connection name: AppointmentsDb
+// Actual database name: ClinicAppointmentsDB
+var appointmentsDb = sql
+    .AddDatabase("AppointmentsDb", "ClinicAppointmentsDB")
+    .WithCreationScript(appointmentsCreationScript);
+
 var catalogDb = sql.AddDatabase("CatalogDb");
 
 // MongoDB
