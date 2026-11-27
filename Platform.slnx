@@ -20,5 +20,8 @@
     <Project Path="Services/Feedback/Feedback.Tests/Feedback.Tests.csproj" />
     <Project Path="Services/Feedback/Feedback.WebApi/Feedback.WebApi.csproj" />
   </Folder>
+  <Project Path="Platform.Aggregator/Platform.Aggregator.csproj" />
+  <Project Path="Platform.ApiGateway/Platform.ApiGateway.csproj" />
   <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+  <Project Path="Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
 </Solution>

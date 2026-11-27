@@ -2,6 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Services\Appointments\Appointments.Api\Appointments.Api.csproj" />
+    <ProjectReference Include="..\Services\Catalog\Catalog.Api\Catalog.Api.csproj" />
+    <ProjectReference Include="..\Services\Feedback\Feedback.WebApi\Feedback.WebApi.csproj" />
+    <ProjectReference Include="..\Platform.ApiGateway\Platform.ApiGateway.csproj" />
+    <ProjectReference Include="..\Platform.Aggregator\Platform.Aggregator.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

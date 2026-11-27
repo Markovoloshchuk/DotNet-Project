@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Appointments.Bll\Appointments.Bll.csproj" />
+    <ProjectReference Include="..\..\..\Platform.ServiceDefaults\Platform.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
