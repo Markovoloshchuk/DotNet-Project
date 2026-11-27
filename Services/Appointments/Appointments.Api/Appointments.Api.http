@@ -8,19 +8,19 @@
 ### ================================
 
 ### Отримати всіх пацієнтів
-GET {{baseUrl}}/api/patients
+GET {{baseUrl}}/api/appointments/patients
 Accept: application/json
 
 ###
 
 ### Отримати пацієнта за ID
-GET {{baseUrl}}/api/patients/{{patientId}}
+GET {{baseUrl}}/api/appointments/patients/{{patientId}}
 Accept: application/json
 
 ###
 
 ### Створити пацієнта
-POST {{baseUrl}}/api/patients
+POST {{baseUrl}}/api/appointments/patients
 Content-Type: application/json
 
 {
@@ -33,7 +33,7 @@ Content-Type: application/json
 ###
 
 ### Оновити пацієнта
-PUT {{baseUrl}}/api/patients/{{patientId}}
+PUT {{baseUrl}}/api/appointments/patients/{{patientId}}
 Content-Type: application/json
 
 {
@@ -46,7 +46,7 @@ Content-Type: application/json
 ###
 
 ### Видалити пацієнта
-DELETE {{baseUrl}}/api/patients/{{patientId}}
+DELETE {{baseUrl}}/api/appointments/patients/{{patientId}}
 
 ###
 

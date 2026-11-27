@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Catalog.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/catalog/service-categories")]
 public sealed class ServiceCategoriesController : ControllerBase
 {
     private readonly IServiceCategoryService _service;

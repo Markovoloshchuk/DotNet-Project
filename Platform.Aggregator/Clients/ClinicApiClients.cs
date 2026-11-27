@@ -55,7 +55,7 @@ public sealed class CatalogClient : JsonApiClient
         CancellationToken cancellationToken)
     {
         return GetJsonAsync(
-            "api/MedicalServices?pageNumber=1&pageSize=100",
+            "api/catalog/medical-services?pageNumber=1&pageSize=100",
             cancellationToken);
     }
 }
@@ -80,7 +80,7 @@ public sealed class FeedbackClient : JsonApiClient
             .GetInt64();
 
         var relativePath =
-            $"api/patient-reviews?patientId={patientId}" +
+            $"api/feedback/patient-reviews?patientId={patientId}" +
             $"&doctorId={doctorId}&page=1&pageSize=100";
 
         return GetJsonAsync(
