@@ -1,0 +1,111 @@
+
+@baseUrl = http://localhost:5130
+@patientId = 1
+@appointmentId = 1
+
+### ================================
+### PATIENTS
+### ================================
+
+### Отримати всіх пацієнтів
+GET {{baseUrl}}/api/patients
+Accept: application/json
+
+###
+
+### Отримати пацієнта за ID
+GET {{baseUrl}}/api/patients/{{patientId}}
+Accept: application/json
+
+###
+
+### Створити пацієнта
+POST {{baseUrl}}/api/patients
+Content-Type: application/json
+
+{
+  "fullName": "Тестовий Пацієнт",
+  "phoneNumber": "+380991234567",
+  "email": "test.patient@example.com",
+  "dateOfBirth": "1995-05-10"
+}
+
+###
+
+### Оновити пацієнта
+PUT {{baseUrl}}/api/patients/{{patientId}}
+Content-Type: application/json
+
+{
+  "fullName": "Оновлене Ім'я Пацієнта",
+  "phoneNumber": "+380501112233",
+  "email": "updated.patient@example.com",
+  "dateOfBirth": "1990-08-15"
+}
+
+###
+
+### Видалити пацієнта
+DELETE {{baseUrl}}/api/patients/{{patientId}}
+
+###
+
+
+### ================================
+### APPOINTMENTS
+### ================================
+
+### Отримати всі записи разом із послугами
+GET {{baseUrl}}/api/appointments
+Accept: application/json
+
+###
+
+### Отримати запис за ID разом із послугами
+GET {{baseUrl}}/api/appointments/{{appointmentId}}
+Accept: application/json
+
+###
+
+### Створити запис разом із послугами
+POST {{baseUrl}}/api/appointments
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "doctorId": 1,
+  "appointmentDate": "2027-03-15T10:00:00",
+  "services": [
+    {
+      "serviceId": 101,
+      "serviceNameSnapshot": "Первинний огляд терапевта",
+      "priceSnapshot": 600.00,
+      "quantity": 1
+    },
+    {
+      "serviceId": 102,
+      "serviceNameSnapshot": "Додаткова консультація",
+      "priceSnapshot": 300.00,
+      "quantity": 1
+    }
+  ]
+}
+
+###
+
+### Оновити запис
+PUT {{baseUrl}}/api/appointments/{{appointmentId}}
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "doctorId": 2,
+  "appointmentDate": "2027-03-16T12:00:00"
+}
+
+###
+
+### Видалити запис (м'яке видалення)
+DELETE {{baseUrl}}/api/appointments/{{appointmentId}}
+
+###

@@ -1,0 +1,90 @@
+using System.Text.Json;
+
+namespace Platform.Aggregator.Clients;
+
+public abstract class JsonApiClient
+{
+    protected readonly HttpClient HttpClient;
+
+    protected JsonApiClient(HttpClient httpClient)
+    {
+        HttpClient = httpClient;
+    }
+
+    protected async Task<JsonElement> GetJsonAsync(
+        string relativePath,
+        CancellationToken cancellationToken)
+    {
+        using var response = await HttpClient.GetAsync(
+            relativePath,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<JsonElement>(
+                   cancellationToken: cancellationToken);
+    }
+}
+
+public sealed class AppointmentsClient : JsonApiClient
+{
+    public AppointmentsClient(HttpClient httpClient)
+        : base(httpClient)
+    {
+    }
+
+    public Task<JsonElement> GetByIdAsync(
+        int appointmentId,
+        CancellationToken cancellationToken)
+    {
+        return GetJsonAsync(
+            $"api/appointments/{appointmentId}",
+            cancellationToken);
+    }
+}
+
+public sealed class CatalogClient : JsonApiClient
+{
+    public CatalogClient(HttpClient httpClient)
+        : base(httpClient)
+    {
+    }
+
+    public Task<JsonElement> GetAllAsync(
+        CancellationToken cancellationToken)
+    {
+        return GetJsonAsync(
+            "api/MedicalServices?pageNumber=1&pageSize=100",
+            cancellationToken);
+    }
+}
+
+public sealed class FeedbackClient : JsonApiClient
+{
+    public FeedbackClient(HttpClient httpClient)
+        : base(httpClient)
+    {
+    }
+
+    public Task<JsonElement> GetForAppointmentAsync(
+        JsonElement appointment,
+        CancellationToken cancellationToken)
+    {
+        var patientId = appointment
+            .GetProperty("patientId")
+            .GetInt64();
+
+        var doctorId = appointment
+            .GetProperty("doctorId")
+            .GetInt64();
+
+        var relativePath =
+            $"api/patient-reviews?patientId={patientId}" +
+            $"&doctorId={doctorId}&page=1&pageSize=100";
+
+        return GetJsonAsync(
+            relativePath,
+            cancellationToken);
+    }
+}

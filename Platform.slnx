@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Appointments/">
+    <Project Path="Services/Appointments/Appointments.Api/Appointments.Api.csproj" />
+    <Project Path="Services/Appointments/Appointments.Bll/Appointments.Bll.csproj" />
+    <Project Path="Services/Appointments/Appointments.Dal/Appointments.Dal.csproj" />
+    <Project Path="Services/Appointments/Appointments.Domain/Appointments.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Services/Catalog/">
+    <Project Path="Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
+    <Project Path="Services/Catalog/Catalog.Bll/Catalog.Bll.csproj" />
+    <Project Path="Services/Catalog/Catalog.Dal/Catalog.Dal.csproj" />
+    <Project Path="Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
+    <Project Path="Services/Catalog/Catalog.Tests/Catalog.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Services/Feedback/">
+    <Project Path="Services/Feedback/Feedback.Application/Feedback.Application.csproj" />
+    <Project Path="Services/Feedback/Feedback.Domain/Feedback.Domain.csproj" />
+    <Project Path="Services/Feedback/Feedback.Infrastructure/Feedback.Infrastructure.csproj" />
+    <Project Path="Services/Feedback/Feedback.Tests/Feedback.Tests.csproj" />
+    <Project Path="Services/Feedback/Feedback.WebApi/Feedback.WebApi.csproj" />
+  </Folder>
+  <Project Path="Platform.Aggregator/Platform.Aggregator.csproj" />
+  <Project Path="Platform.ApiGateway/Platform.ApiGateway.csproj" />
+  <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+  <Project Path="Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
+</Solution>
