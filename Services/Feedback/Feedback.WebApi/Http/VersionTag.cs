@@ -10,17 +10,13 @@ public static class VersionTag
         response.Headers["ETag"] = $"\"{version}\"";
     }
 
-    public static bool TryRead(
-        HttpRequest request,
-        out int version)
+    public static bool TryRead(string? value, out int version)
     {
         version = 0;
+        value = value?.Trim();
 
-        var value = request.Headers["If-Match"]
-            .ToString()
-            .Trim();
-
-        if (value.Length < 3 ||
+        if (value is null ||
+            value.Length < 3 ||
             value[0] != '"' ||
             value[^1] != '"')
         {

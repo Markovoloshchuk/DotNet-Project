@@ -63,12 +63,14 @@ public sealed class DoctorDiscussionsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+
     public async Task<IActionResult> Update(
         string id,
         [FromBody] UpdateDoctorDiscussionRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken)
     {
-        if (!VersionTag.TryRead(Request, out var expectedVersion))
+        if (!VersionTag.TryRead(ifMatch, out var expectedVersion))
         {
             return BadRequest(new
             {
@@ -101,12 +103,14 @@ public sealed class DoctorDiscussionsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+
     public async Task<IActionResult> AddComment(
         string id,
         [FromBody] AddDiscussionCommentRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken)
     {
-        if (!VersionTag.TryRead(Request, out var expectedVersion))
+        if (!VersionTag.TryRead(ifMatch, out var expectedVersion))
         {
             return BadRequest(new
             {
@@ -139,11 +143,13 @@ public sealed class DoctorDiscussionsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    
     public async Task<IActionResult> Delete(
         string id,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken)
     {
-        if (!VersionTag.TryRead(Request, out var expectedVersion))
+        if (!VersionTag.TryRead(ifMatch, out var expectedVersion))
         {
             return BadRequest(new
             {

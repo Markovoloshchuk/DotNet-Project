@@ -85,9 +85,10 @@ public sealed class ConsultationNotesController(
     public async Task<IActionResult> Update(
         string id,
         [FromBody] UpdateConsultationNoteRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken)
     {
-        if (!VersionTag.TryRead(Request, out var expectedVersion))
+        if (!VersionTag.TryRead(ifMatch, out var expectedVersion))
         {
             return BadRequest(new
             {
