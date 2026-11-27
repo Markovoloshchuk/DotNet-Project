@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace Platform.Aggregator.Clients;
@@ -56,7 +55,7 @@ public sealed class CatalogClient : JsonApiClient
         CancellationToken cancellationToken)
     {
         return GetJsonAsync(
-            "api/catalog",
+            "api/MedicalServices?pageNumber=1&pageSize=100",
             cancellationToken);
     }
 }
@@ -68,11 +67,24 @@ public sealed class FeedbackClient : JsonApiClient
     {
     }
 
-    public Task<JsonElement> GetAllAsync(
+    public Task<JsonElement> GetForAppointmentAsync(
+        JsonElement appointment,
         CancellationToken cancellationToken)
     {
+        var patientId = appointment
+            .GetProperty("patientId")
+            .GetInt64();
+
+        var doctorId = appointment
+            .GetProperty("doctorId")
+            .GetInt64();
+
+        var relativePath =
+            $"api/patient-reviews?patientId={patientId}" +
+            $"&doctorId={doctorId}&page=1&pageSize=100";
+
         return GetJsonAsync(
-            "api/feedback",
+            relativePath,
             cancellationToken);
     }
 }

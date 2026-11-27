@@ -48,7 +48,9 @@ public sealed class AppointmentAggregationService
 
         var feedbackTask = TryGetOptionalAsync(
             "Feedback",
-            _feedbackClient.GetAllAsync,
+            ct => _feedbackClient.GetForAppointmentAsync(
+                appointment,
+                ct),
             cancellationToken);
 
         var optionalResults = await Task.WhenAll(
