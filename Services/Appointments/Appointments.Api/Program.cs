@@ -1,7 +1,9 @@
 using Appointments.Api.Middleware;
 using Appointments.Bll;
+using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.AddServiceDefaults();
 
 // Connection string
@@ -36,6 +38,9 @@ builder.Services.AddAppointmentsBll(
     builder.Configuration["AutoMapper:LicenseKey"]);
 
 var app = builder.Build();
+
+// Correlation ID middleware
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Exception handling
 app.UseExceptionHandler();

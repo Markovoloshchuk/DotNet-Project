@@ -1,4 +1,3 @@
-
 using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
@@ -10,31 +9,11 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Serilog;
-using Serilog.Events;
+using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddServiceDefaults();
 
-// Serilog configuration
-builder.Host.UseSerilog((_, _, loggerConfiguration) =>
-{
-    loggerConfiguration
-        .MinimumLevel.Information()
-        .MinimumLevel.Override(
-            "Microsoft",
-            LogEventLevel.Warning)
-        .MinimumLevel.Override(
-            "Microsoft.Hosting.Lifetime",
-            LogEventLevel.Information)
-        .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "Catalog.Api")
-        .WriteTo.Console(
-            outputTemplate:
-                "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} " +
-                "{Level:u3}] {SourceContext} {Message:lj}" +
-                "{NewLine}{Exception}");
-});
+builder.AddServiceDefaults();
 
 // Database connection
 var connectionString =
@@ -118,8 +97,8 @@ if (app.Environment.IsDevelopment())
     await seeder.SeedAsync();
 }
 
-// HTTP request logging
-app.UseSerilogRequestLogging();
+// Correlation ID middleware
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // Global exception handling middleware
 app.UseExceptionHandler();
@@ -139,11 +118,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapDefaultEndpoints();
 
-try
-{
-    app.Run();
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+app.Run();

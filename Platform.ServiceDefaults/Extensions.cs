@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,70 +7,145 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Platform.ServiceDefaults;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 namespace Microsoft.Extensions.Hosting;
 
-// Adds common Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
-// This project should be referenced by each service project in your solution.
-// To learn more about using this project, see https://aka.ms/aspire/service-defaults
 public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
-    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    public static TBuilder AddServiceDefaults<TBuilder>(
+        this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
-        builder.ConfigureOpenTelemetry();
+        ConfigureSerilog(builder);
 
+        builder.ConfigureOpenTelemetry();
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddServiceDiscovery();
 
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddTransient<CorrelationIdDelegatingHandler>();
+
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on resilience by default
+            http.AddHttpMessageHandler<CorrelationIdDelegatingHandler>();
             http.AddStandardResilienceHandler();
-
-            // Turn on service discovery by default
             http.AddServiceDiscovery();
         });
-
-        // Uncomment the following to restrict the allowed schemes for service discovery.
-        // builder.Services.Configure<ServiceDiscoveryOptions>(options =>
-        // {
-        //     options.AllowedSchemes = ["https"];
-        // });
 
         return builder;
     }
 
-    public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    private static void ConfigureSerilog<TBuilder>(TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
+    {
+        builder.Services.AddSerilog(
+            (_, loggerConfiguration) =>
+            {
+                loggerConfiguration
+                    .MinimumLevel.Is(
+                        builder.Environment.IsDevelopment()
+                            ? LogEventLevel.Debug
+                            : LogEventLevel.Information)
+                    .MinimumLevel.Override(
+                        "Microsoft",
+                        LogEventLevel.Warning)
+                    .MinimumLevel.Override(
+                        "Microsoft.Hosting.Lifetime",
+                        LogEventLevel.Information)
+                    .MinimumLevel.Override(
+                        "Microsoft.EntityFrameworkCore",
+                        LogEventLevel.Warning)
+                    .MinimumLevel.Override(
+                        "System.Net.Http.HttpClient",
+                        LogEventLevel.Warning)
+                    .Enrich.FromLogContext()
+                    .Enrich.WithMachineName()
+                    .Enrich.WithThreadId()
+                    .Enrich.WithProperty(
+                        "ServiceName",
+                        builder.Environment.ApplicationName)
+                    .Enrich.WithProperty(
+                        "Environment",
+                        builder.Environment.EnvironmentName)
+                    .WriteTo.Console(new CompactJsonFormatter());
+            },
+            writeToProviders: true);
+    }
+
+    public static TBuilder ConfigureOpenTelemetry<TBuilder>(
+        this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
         builder.Logging.AddOpenTelemetry(logging =>
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
+            logging.ParseStateValues = true;
         });
 
+        var samplingRatioConfiguration =
+            builder.Configuration["OpenTelemetry:SamplingRatio"];
+
+        double samplingRatio;
+
+        if (string.IsNullOrWhiteSpace(samplingRatioConfiguration))
+        {
+            samplingRatio = builder.Environment.IsDevelopment()
+                ? 1.0
+                : 0.1;
+        }
+        else if (!double.TryParse(
+                     samplingRatioConfiguration,
+                     NumberStyles.Float,
+                     CultureInfo.InvariantCulture,
+                     out samplingRatio))
+        {
+            throw new InvalidOperationException(
+                "OpenTelemetry:SamplingRatio must be a valid number.");
+        }
+
+        if (!double.IsFinite(samplingRatio)
+            || samplingRatio is < 0 or > 1)
+        {
+            throw new InvalidOperationException(
+                "OpenTelemetry:SamplingRatio must be between 0 and 1.");
+        }
+
         builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource =>
+                resource.AddService(
+                    serviceName: builder.Environment.ApplicationName))
             .WithMetrics(metrics =>
             {
-                metrics.AddAspNetCoreInstrumentation()
+                metrics
+                    .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation();
             })
             .WithTracing(tracing =>
             {
-                tracing.AddSource(builder.Environment.ApplicationName)
-                    .AddAspNetCoreInstrumentation(tracing =>
-                        // Exclude health check requests from tracing
-                        tracing.Filter = context =>
-                            !context.Request.Path.StartsWithSegments(HealthEndpointPath)
-                            && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath)
-                    )
-                    // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                    //.AddGrpcClientInstrumentation()
+                tracing
+                    .SetSampler(
+                        new TraceIdRatioBasedSampler(samplingRatio))
+                    .AddSource(builder.Environment.ApplicationName)
+                    .AddAspNetCoreInstrumentation(options =>
+                    {
+                        options.Filter = context =>
+                            !context.Request.Path.StartsWithSegments(
+                                HealthEndpointPath)
+                            && !context.Request.Path.StartsWithSegments(
+                                AlivenessEndpointPath);
+                    })
                     .AddHttpClientInstrumentation();
             });
 
@@ -78,48 +154,50 @@ public static class Extensions
         return builder;
     }
 
-    private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    private static TBuilder AddOpenTelemetryExporters<TBuilder>(
+        this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+        var useOtlpExporter =
+            !string.IsNullOrWhiteSpace(
+                builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
         if (useOtlpExporter)
         {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            builder.Services
+                .AddOpenTelemetry()
+                .UseOtlpExporter();
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry()
-        //       .UseAzureMonitor();
-        //}
-
         return builder;
     }
 
-    public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    public static TBuilder AddDefaultHealthChecks<TBuilder>(
+        this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddHealthChecks()
-            // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck(
+                "self",
+                () => HealthCheckResult.Healthy(),
+                ["live"]);
 
         return builder;
     }
 
-    public static WebApplication MapDefaultEndpoints(this WebApplication app)
+    public static WebApplication MapDefaultEndpoints(
+        this WebApplication app)
     {
-        // Adding health checks endpoints to applications in non-development environments has security implications.
-        // See https://aka.ms/aspire/healthchecks for details before enabling these endpoints in non-development environments.
         if (app.Environment.IsDevelopment())
         {
-            // All health checks must pass for app to be considered ready to accept traffic after starting
             app.MapHealthChecks(HealthEndpointPath);
 
-            // Only health checks tagged with the "live" tag must pass for app to be considered alive
-            app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("live")
-            });
+            app.MapHealthChecks(
+                AlivenessEndpointPath,
+                new HealthCheckOptions
+                {
+                    Predicate = check => check.Tags.Contains("live")
+                });
         }
 
         return app;
