@@ -21,6 +21,9 @@ public static class Extensions
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
+    // ActivitySource used by the MongoDB .NET/C# Driver.
+    private const string MongoDbActivitySourceName = "MongoDB.Driver";
+
     public static TBuilder AddServiceDefaults<TBuilder>(
         this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -130,7 +133,8 @@ public static class Extensions
                 metrics
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddSqlClientInstrumentation();
             })
             .WithTracing(tracing =>
             {
@@ -138,6 +142,7 @@ public static class Extensions
                     .SetSampler(
                         new TraceIdRatioBasedSampler(samplingRatio))
                     .AddSource(builder.Environment.ApplicationName)
+                    .AddSource(MongoDbActivitySourceName)
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         options.Filter = context =>
@@ -146,7 +151,11 @@ public static class Extensions
                             && !context.Request.Path.StartsWithSegments(
                                 AlivenessEndpointPath);
                     })
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddSqlClientInstrumentation(options =>
+                    {
+                        options.RecordException = true;
+                    });
             });
 
         builder.AddOpenTelemetryExporters();
