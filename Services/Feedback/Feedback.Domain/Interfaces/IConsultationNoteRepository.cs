@@ -1,12 +1,11 @@
 using Feedback.Domain.Entities;
-using MongoDB.Bson;
 
 namespace Feedback.Domain.Interfaces;
 
 public interface IConsultationNoteRepository
 {
     Task<ConsultationNote?> GetByIdAsync(
-        ObjectId id,
+        string id,
         CancellationToken ct = default);
 
     Task<ConsultationNote?> GetByAppointmentIdAsync(

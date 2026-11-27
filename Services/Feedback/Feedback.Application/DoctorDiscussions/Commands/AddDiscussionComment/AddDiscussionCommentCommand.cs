@@ -1,8 +1,8 @@
 using Feedback.Application.Common.Exceptions;
+using Feedback.Application.Common.Validation;
 using Feedback.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
-using MongoDB.Bson;
 
 namespace Feedback.Application.DoctorDiscussions.Commands.AddDiscussionComment;
 
@@ -23,7 +23,7 @@ public sealed class AddDiscussionCommentCommandHandler(
         CancellationToken cancellationToken)
     {
         var discussion = await repository.GetByIdAsync(
-            ObjectId.Parse(request.Id),
+            request.Id,
             cancellationToken);
 
         if (discussion is null)
@@ -50,14 +50,16 @@ public sealed class AddDiscussionCommentCommandValidator
     public AddDiscussionCommentCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty()
-            .Must(id => ObjectId.TryParse(id, out _));
+            .Must(DocumentId.IsValid);
 
         RuleFor(x => x.ExpectedVersion)
             .GreaterThanOrEqualTo(0);
 
-        RuleFor(x => x.CommentId).GreaterThan(0);
-        RuleFor(x => x.DoctorRefId).GreaterThan(0);
+        RuleFor(x => x.CommentId)
+            .GreaterThan(0);
+
+        RuleFor(x => x.DoctorRefId)
+            .GreaterThan(0);
 
         RuleFor(x => x.Text)
             .NotEmpty()

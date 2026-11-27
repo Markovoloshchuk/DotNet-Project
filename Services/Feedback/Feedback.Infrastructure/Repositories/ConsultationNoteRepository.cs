@@ -17,9 +17,12 @@ public sealed class ConsultationNoteRepository
     }
 
     public async Task<ConsultationNote?> GetByIdAsync(
-        ObjectId id,
+        string id,
         CancellationToken ct = default)
     {
+        if (!ObjectId.TryParse(id, out _))
+            return null;
+
         return await _collection
             .Find(x => x.Id == id)
             .FirstOrDefaultAsync(ct);

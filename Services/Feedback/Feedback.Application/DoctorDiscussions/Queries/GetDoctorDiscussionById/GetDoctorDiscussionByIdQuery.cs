@@ -1,10 +1,10 @@
 using Feedback.Application.Common.Exceptions;
 using Feedback.Application.Common.Mappings;
 using Feedback.Application.Common.Models;
+using Feedback.Application.Common.Validation;
 using Feedback.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
-using MongoDB.Bson;
 
 namespace Feedback.Application.DoctorDiscussions.Queries.GetDoctorDiscussionById;
 
@@ -20,7 +20,7 @@ public sealed class GetDoctorDiscussionByIdQueryHandler(
         CancellationToken cancellationToken)
     {
         var discussion = await repository.GetByIdAsync(
-            ObjectId.Parse(request.Id),
+            request.Id,
             cancellationToken);
 
         return discussion?.ToDto();
@@ -33,7 +33,6 @@ public sealed class GetDoctorDiscussionByIdQueryValidator
     public GetDoctorDiscussionByIdQueryValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty()
-            .Must(id => ObjectId.TryParse(id, out _));
+            .Must(DocumentId.IsValid);
     }
 }

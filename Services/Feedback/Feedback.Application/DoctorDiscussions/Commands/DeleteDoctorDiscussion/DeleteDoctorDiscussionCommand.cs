@@ -1,8 +1,8 @@
 using Feedback.Application.Common.Exceptions;
+using Feedback.Application.Common.Validation;
 using Feedback.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
-using MongoDB.Bson;
 
 namespace Feedback.Application.DoctorDiscussions.Commands.DeleteDoctorDiscussion;
 
@@ -19,10 +19,8 @@ public sealed class DeleteDoctorDiscussionCommandHandler(
         DeleteDoctorDiscussionCommand request,
         CancellationToken cancellationToken)
     {
-        var id = ObjectId.Parse(request.Id);
-
         var discussion = await repository.GetByIdAsync(
-            id,
+            request.Id,
             cancellationToken);
 
         if (discussion is null)
@@ -33,7 +31,7 @@ public sealed class DeleteDoctorDiscussionCommandHandler(
             return false;
 
         return await repository.DeleteAsync(
-            id,
+            request.Id,
             request.ExpectedVersion,
             cancellationToken);
     }
@@ -45,8 +43,7 @@ public sealed class DeleteDoctorDiscussionCommandValidator
     public DeleteDoctorDiscussionCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty()
-            .Must(id => ObjectId.TryParse(id, out _));
+            .Must(DocumentId.IsValid);
 
         RuleFor(x => x.ExpectedVersion)
             .GreaterThanOrEqualTo(0);

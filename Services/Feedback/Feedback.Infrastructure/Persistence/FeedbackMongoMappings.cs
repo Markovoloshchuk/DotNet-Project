@@ -3,6 +3,8 @@ using Feedback.Domain.Entities;
 using Feedback.Domain.ValueObjects;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Serializers;
 
 namespace Feedback.Infrastructure.Persistence;
 
@@ -53,7 +55,9 @@ public static class FeedbackMongoMappings
 
         BsonClassMap.RegisterClassMap<BaseEntity>(classMap =>
         {
-            classMap.MapIdMember(x => x.Id);
+            classMap.MapIdMember(x => x.Id)
+                .SetSerializer(
+                    new StringSerializer(BsonType.ObjectId));
 
             classMap.MapProperty(nameof(BaseEntity.CreatedAt))
                 .SetElementName("createdAt");

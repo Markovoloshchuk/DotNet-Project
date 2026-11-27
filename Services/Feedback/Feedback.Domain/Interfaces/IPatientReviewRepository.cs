@@ -1,12 +1,11 @@
 using Feedback.Domain.Entities;
-using MongoDB.Bson;
 
 namespace Feedback.Domain.Interfaces;
 
 public interface IPatientReviewRepository
 {
     Task<PatientReview?> GetByIdAsync(
-        ObjectId id,
+        string id,
         CancellationToken ct = default);
 
     Task<bool> ExistsForPatientAndDoctorAsync(
@@ -23,7 +22,7 @@ public interface IPatientReviewRepository
         CancellationToken ct = default);
 
     Task<bool> DeleteAsync(
-        ObjectId id,
+        string id,
         int expectedVersion,
         CancellationToken ct = default);
 }

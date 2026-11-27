@@ -1,5 +1,5 @@
+using Feedback.Application.Common.Validation;
 using FluentValidation;
-using MongoDB.Bson;
 
 namespace Feedback.Application.PatientReviews.Commands.UpdatePatientReview;
 
@@ -9,8 +9,8 @@ public sealed class UpdatePatientReviewCommandValidator
     public UpdatePatientReviewCommandValidator()
     {
         RuleFor(x => x.Id)
-            .Must(id => ObjectId.TryParse(id, out _))
-            .WithMessage("Id must be a valid MongoDB ObjectId.");
+            .Must(DocumentId.IsValid)
+            .WithMessage("Invalid document ID.");
 
         RuleFor(x => x.ExpectedVersion)
             .GreaterThanOrEqualTo(0);

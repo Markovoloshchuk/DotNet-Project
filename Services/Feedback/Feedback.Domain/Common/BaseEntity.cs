@@ -1,10 +1,10 @@
-using MongoDB.Bson;
+using System.Security.Cryptography;
 
 namespace Feedback.Domain.Common;
 
 public abstract class BaseEntity
 {
-    public ObjectId Id { get; protected set; } = ObjectId.GenerateNewId();
+    public string Id { get; protected set; } = GenerateId();
 
     public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
 
@@ -19,6 +19,13 @@ public abstract class BaseEntity
     protected BaseEntity(DateTime? createdAt)
     {
         CreatedAt = createdAt?.ToUniversalTime() ?? DateTime.UtcNow;
+    }
+
+    private static string GenerateId()
+    {
+        return Convert.ToHexString(
+            RandomNumberGenerator.GetBytes(12)
+        ).ToLowerInvariant();
     }
 
     protected void Touch()

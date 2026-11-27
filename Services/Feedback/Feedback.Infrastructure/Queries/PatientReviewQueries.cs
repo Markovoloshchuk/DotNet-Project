@@ -1,4 +1,4 @@
-using AutoMapper;
+
 using Feedback.Application.Common.Interfaces;
 using Feedback.Application.Common.Models;
 using Feedback.Domain.Entities;
@@ -11,14 +11,34 @@ namespace Feedback.Infrastructure.Queries;
 public sealed class PatientReviewQueries : IPatientReviewQueries
 {
     private readonly IMongoCollection<PatientReview> _collection;
-    private readonly IMapper _mapper;
 
-    public PatientReviewQueries(
-        MongoDbContext context,
-        IMapper mapper)
+    private static readonly BsonDocument ReviewProjection = new()
+    {
+        { "Id", new BsonDocument("$toString", "$_id") },
+        { "ReviewId", "$reviewId" },
+        { "PatientId", "$patientId" },
+        { "DoctorId", "$doctorId" },
+        { "Rating", "$rating" },
+        { "Comment", "$comment" },
+        { "CreatedAt", "$createdAt" },
+        { "UpdatedAt", "$updatedAt" },
+        {
+            "ClinicResponse",
+            new BsonDocument("$ifNull", new BsonArray
+            {
+                "$clinicResponse.message",
+                BsonNull.Value
+            })
+        },
+        { "HelpfulVotes", "$helpfulVotes" },
+        { "VerifiedVisit", "$verifiedVisit" },
+        { "Tags", "$tags" },
+        { "Version", "$version" }
+    };
+
+    public PatientReviewQueries(MongoDbContext context)
     {
         _collection = context.PatientReviews;
-        _mapper = mapper;
     }
 
     public async Task<PatientReviewDto?> GetByIdAsync(
@@ -28,13 +48,15 @@ public sealed class PatientReviewQueries : IPatientReviewQueries
         if (!ObjectId.TryParse(id, out var objectId))
             return null;
 
-        var review = await _collection
-            .Find(x => x.Id == objectId)
+        var document = await _collection
+            .Aggregate()
+            .Match(x => x.Id == id)
+            .Project<BsonDocument>(ReviewProjection)
             .FirstOrDefaultAsync(ct);
 
-        return review is null
+        return document is null
             ? null
-            : _mapper.Map<PatientReviewDto>(review);
+            : MapToDto(document);
     }
 
     public async Task<PagedResult<PatientReviewDto>> GetListAsync(
@@ -52,6 +74,7 @@ public sealed class PatientReviewQueries : IPatientReviewQueries
             throw new ArgumentOutOfRangeException(nameof(pageSize));
 
         var builder = Builders<PatientReview>.Filter;
+
         var filters = new List<FilterDefinition<PatientReview>>();
 
         if (patientId.HasValue)
@@ -70,7 +93,9 @@ public sealed class PatientReviewQueries : IPatientReviewQueries
 
         if (rating.HasValue)
         {
-            filters.Add(builder.Eq("rating", rating.Value));
+            filters.Add(builder.Eq(
+                "rating",
+                rating.Value));
         }
 
         var filter = filters.Count == 0
@@ -85,15 +110,17 @@ public sealed class PatientReviewQueries : IPatientReviewQueries
             (long)(page - 1) * pageSize,
             int.MaxValue);
 
-        var reviews = await _collection
-            .Find(filter)
+        var documents = await _collection
+            .Aggregate()
+            .Match(filter)
             .SortByDescending(x => x.CreatedAt)
             .Skip(skip)
             .Limit(pageSize)
+            .Project<BsonDocument>(ReviewProjection)
             .ToListAsync(ct);
 
-        var items = reviews
-            .Select(review => _mapper.Map<PatientReviewDto>(review))
+        var items = documents
+            .Select(MapToDto)
             .ToList();
 
         return new PagedResult<PatientReviewDto>(
@@ -102,4 +129,54 @@ public sealed class PatientReviewQueries : IPatientReviewQueries
             pageSize,
             totalCount);
     }
-}   
+
+    private static PatientReviewDto MapToDto(BsonDocument document)
+    {
+        var updatedAtValue = document.GetValue(
+            "UpdatedAt",
+            BsonNull.Value);
+
+        var clinicResponseValue = document.GetValue(
+            "ClinicResponse",
+            BsonNull.Value);
+
+        var verifiedVisitValue = document.GetValue(
+            "VerifiedVisit",
+            BsonNull.Value);
+
+        var tagsValue = document.GetValue(
+            "Tags",
+            new BsonArray());
+
+        DateTime? updatedAt = updatedAtValue.IsBsonNull
+            ? null
+            : updatedAtValue.AsBsonDateTime.ToUniversalTime();
+
+        string? clinicResponse = clinicResponseValue.IsBsonNull
+            ? null
+            : clinicResponseValue.AsString;
+
+        bool? verifiedVisit = verifiedVisitValue.IsBsonNull
+            ? null
+            : verifiedVisitValue.AsBoolean;
+
+        var tags = tagsValue.AsBsonArray
+            .Select(x => x.AsString)
+            .ToArray();
+
+        return new PatientReviewDto(
+            document["Id"].AsString,
+            document["ReviewId"].ToInt64(),
+            document["PatientId"].ToInt64(),
+            document["DoctorId"].ToInt64(),
+            document["Rating"].ToInt32(),
+            document["Comment"].AsString,
+            document["CreatedAt"].AsBsonDateTime.ToUniversalTime(),
+            updatedAt,
+            clinicResponse,
+            document["HelpfulVotes"].ToInt32(),
+            verifiedVisit,
+            tags,
+            document["Version"].ToInt32());
+    }
+}

@@ -1,8 +1,8 @@
 using Feedback.Application.Common.Exceptions;
+using Feedback.Application.Common.Validation;
 using Feedback.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
-using MongoDB.Bson;
 
 namespace Feedback.Application.ConsultationNotes.Commands.UpdateConsultationNote;
 
@@ -22,7 +22,7 @@ public sealed class UpdateConsultationNoteCommandHandler(
         CancellationToken cancellationToken)
     {
         var note = await repository.GetByIdAsync(
-            ObjectId.Parse(request.Id),
+            request.Id,
             cancellationToken);
 
         if (note is null)
@@ -52,8 +52,7 @@ public sealed class UpdateConsultationNoteCommandValidator
     public UpdateConsultationNoteCommandValidator()
     {
         RuleFor(x => x.Id)
-            .NotEmpty()
-            .Must(id => ObjectId.TryParse(id, out _));
+            .Must(DocumentId.IsValid);
 
         RuleFor(x => x.ExpectedVersion)
             .GreaterThanOrEqualTo(0);

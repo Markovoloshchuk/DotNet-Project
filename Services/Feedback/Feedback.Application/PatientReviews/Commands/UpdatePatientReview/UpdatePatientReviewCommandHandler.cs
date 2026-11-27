@@ -1,6 +1,5 @@
 using Feedback.Application.Common.Exceptions;
 using Feedback.Domain.Interfaces;
-using MongoDB.Bson;
 using MediatR;
 
 namespace Feedback.Application.PatientReviews.Commands.UpdatePatientReview;
@@ -13,10 +12,8 @@ public sealed class UpdatePatientReviewCommandHandler(
         UpdatePatientReviewCommand request,
         CancellationToken cancellationToken)
     {
-        var id = ObjectId.Parse(request.Id);
-
         var review = await repository.GetByIdAsync(
-            id,
+            request.Id,
             cancellationToken);
 
         if (review is null)

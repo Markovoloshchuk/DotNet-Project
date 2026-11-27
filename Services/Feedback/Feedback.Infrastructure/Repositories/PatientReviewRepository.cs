@@ -17,9 +17,12 @@ public sealed class PatientReviewRepository
     }
 
     public async Task<PatientReview?> GetByIdAsync(
-        ObjectId id,
+        string id,
         CancellationToken ct = default)
     {
+        if (!ObjectId.TryParse(id, out _))
+            return null;
+
         return await _collection
             .Find(x => x.Id == id)
             .FirstOrDefaultAsync(ct);
@@ -71,10 +74,13 @@ public sealed class PatientReviewRepository
     }
 
     public async Task<bool> DeleteAsync(
-        ObjectId id,
+        string id,
         int expectedVersion,
         CancellationToken ct = default)
     {
+        if (!ObjectId.TryParse(id, out _))
+            return false;
+
         var filter = Builders<PatientReview>.Filter.And(
             Builders<PatientReview>.Filter.Eq(
                 x => x.Id,
