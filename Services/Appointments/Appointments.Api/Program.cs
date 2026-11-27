@@ -2,6 +2,7 @@ using Appointments.Api.Middleware;
 using Appointments.Bll;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
 
 // Connection string
 var connectionString =
@@ -51,5 +52,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapDefaultEndpoints();
 
 app.Run();

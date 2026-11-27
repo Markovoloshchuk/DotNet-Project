@@ -5,6 +5,7 @@ using Feedback.WebApi.ExceptionHandling;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
 
 // Controllers
 builder.Services.AddControllers();
@@ -52,8 +53,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Health endpoint
-app.MapHealthChecks("/health");
+app.MapDefaultEndpoints();
 
 app.Run();

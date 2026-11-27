@@ -14,6 +14,7 @@ using Serilog;
 using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
 
 // Serilog configuration
 builder.Host.UseSerilog((_, _, loggerConfiguration) =>
@@ -136,6 +137,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapDefaultEndpoints();
 
 try
 {
