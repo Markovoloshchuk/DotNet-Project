@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Feedback.WebApi.Controllers;
 
 [ApiController]
-[Route("api/doctor-discussions")]
+[Route("api/feedback/doctor-discussions")]
 public sealed class DoctorDiscussionsController(
     ISender sender) : ControllerBase
 {

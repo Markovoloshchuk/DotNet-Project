@@ -31,13 +31,18 @@ var appointmentsDb = sql
     .AddDatabase("AppointmentsDb", "ClinicAppointmentsDB")
     .WithCreationScript(appointmentsCreationScript);
 
+// Connection name and actual database name: CatalogDb
 var catalogDb = sql.AddDatabase("CatalogDb");
 
 // MongoDB
 var mongodb = builder.AddMongoDB("mongodb")
     .WithDataVolume();
 
-var feedbackDb = mongodb.AddDatabase("FeedbackDb");
+// Connection name: FeedbackDb
+// Actual database name: ClinicFeedbackDB
+var feedbackDb = mongodb.AddDatabase(
+    "FeedbackDb",
+    "ClinicFeedbackDB");
 
 // Appointments API
 var appointmentsApi = builder

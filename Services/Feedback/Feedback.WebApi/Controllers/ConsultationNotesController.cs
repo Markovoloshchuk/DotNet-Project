@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Feedback.WebApi.Controllers;
 
 [ApiController]
-[Route("api/consultation-notes")]
+[Route("api/feedback/consultation-notes")]
 public sealed class ConsultationNotesController(
     ISender sender) : ControllerBase
 {

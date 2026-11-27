@@ -21,6 +21,18 @@ public static class Extensions
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
+    private const string MongoDbActivitySourceName = "MongoDB.Driver";
+
+    // Custom business ActivitySources.
+    private const string AppointmentsActivitySourceName =
+        "Clinic.Appointments";
+
+    private const string CatalogActivitySourceName =
+        "Clinic.Catalog";
+
+    private const string FeedbackActivitySourceName =
+        "Clinic.Feedback";
+
     public static TBuilder AddServiceDefaults<TBuilder>(
         this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -130,7 +142,8 @@ public static class Extensions
                 metrics
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddSqlClientInstrumentation();
             })
             .WithTracing(tracing =>
             {
@@ -138,6 +151,13 @@ public static class Extensions
                     .SetSampler(
                         new TraceIdRatioBasedSampler(samplingRatio))
                     .AddSource(builder.Environment.ApplicationName)
+                    .AddSource(MongoDbActivitySourceName)
+
+                    // Business ActivitySources.
+                    .AddSource(AppointmentsActivitySourceName)
+                    .AddSource(CatalogActivitySourceName)
+                    .AddSource(FeedbackActivitySourceName)
+
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         options.Filter = context =>
@@ -146,7 +166,11 @@ public static class Extensions
                             && !context.Request.Path.StartsWithSegments(
                                 AlivenessEndpointPath);
                     })
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddSqlClientInstrumentation(options =>
+                    {
+                        options.RecordException = true;
+                    });
             });
 
         builder.AddOpenTelemetryExporters();

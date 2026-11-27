@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Catalog.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/catalog/medical-services")]
 public sealed class MedicalServicesController : ControllerBase
 {
     private readonly IMedicalServiceService _service;
