@@ -21,8 +21,17 @@ public static class Extensions
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
 
-    // ActivitySource used by the MongoDB .NET/C# Driver.
     private const string MongoDbActivitySourceName = "MongoDB.Driver";
+
+    // Custom business ActivitySources.
+    private const string AppointmentsActivitySourceName =
+        "Clinic.Appointments";
+
+    private const string CatalogActivitySourceName =
+        "Clinic.Catalog";
+
+    private const string FeedbackActivitySourceName =
+        "Clinic.Feedback";
 
     public static TBuilder AddServiceDefaults<TBuilder>(
         this TBuilder builder)
@@ -143,6 +152,12 @@ public static class Extensions
                         new TraceIdRatioBasedSampler(samplingRatio))
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource(MongoDbActivitySourceName)
+
+                    // Business ActivitySources.
+                    .AddSource(AppointmentsActivitySourceName)
+                    .AddSource(CatalogActivitySourceName)
+                    .AddSource(FeedbackActivitySourceName)
+
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         options.Filter = context =>

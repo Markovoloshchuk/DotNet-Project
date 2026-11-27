@@ -1,4 +1,4 @@
-
+using System.Diagnostics;
 using AutoMapper;
 using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
@@ -6,27 +6,43 @@ using Catalog.Bll.Interfaces;
 using Catalog.Dal.UnitOfWork;
 using Catalog.Domain.Entities;
 using Catalog.Domain.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace Catalog.Bll.Services;
 
 public sealed class MedicalServiceService : IMedicalServiceService
 {
+    private static readonly ActivitySource ActivitySource =
+        new("Clinic.Catalog");
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ILogger<MedicalServiceService> _logger;
 
     public MedicalServiceService(
         IUnitOfWork unitOfWork,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger<MedicalServiceService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<MedicalServiceDto>> GetAllAsync(
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.GetAll");
+
         var services = await _unitOfWork.MedicalServiceQueries
             .GetAllWithDetailsAsync(ct);
+
+        activity?.SetTag("catalog.services.count", services.Count);
+
+        _logger.LogDebug(
+            "Retrieved {ServiceCount} medical services",
+            services.Count);
 
         return _mapper.Map<IReadOnlyList<MedicalServiceDto>>(
             services);
@@ -36,8 +52,14 @@ public sealed class MedicalServiceService : IMedicalServiceService
         long id,
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.GetById");
+
+        activity?.SetTag("catalog.service.id", id);
+
         if (id <= 0)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
             throw new ArgumentOutOfRangeException(nameof(id));
         }
 
@@ -46,9 +68,19 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         if (service is null)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
+
+            _logger.LogWarning(
+                "Medical service {ServiceId} was not found",
+                id);
+
             throw new NotFoundException(
                 $"Medical service with ID {id} was not found.");
         }
+
+        _logger.LogDebug(
+            "Retrieved medical service {ServiceId}",
+            id);
 
         return _mapper.Map<MedicalServiceDto>(service);
     }
@@ -57,7 +89,18 @@ public sealed class MedicalServiceService : IMedicalServiceService
         SearchMedicalServicesDto filter,
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.Search");
+
         ArgumentNullException.ThrowIfNull(filter);
+
+        activity?.SetTag(
+            "catalog.page.number",
+            filter.PageNumber);
+
+        activity?.SetTag(
+            "catalog.page.size",
+            filter.PageSize);
 
         var result = await _unitOfWork.MedicalServiceQueries
             .SearchAsync(
@@ -71,6 +114,14 @@ public sealed class MedicalServiceService : IMedicalServiceService
                 sortBy: filter.SortBy,
                 sortDescending: filter.SortDescending,
                 ct: ct);
+
+        activity?.SetTag(
+            "catalog.search.result_count",
+            result.Items.Count);
+
+        _logger.LogDebug(
+            "Medical service search returned {ResultCount} results",
+            result.Items.Count);
 
         return new PagedResultDto<MedicalServiceDto>
         {
@@ -88,8 +139,19 @@ public sealed class MedicalServiceService : IMedicalServiceService
             int count,
             CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.GetTopByPrice");
+
+        activity?.SetTag("catalog.services.requested_count", count);
+
         var services = await _unitOfWork.MedicalServiceQueries
             .GetTopByPriceAsync(count, ct);
+
+        activity?.SetTag("catalog.services.result_count", services.Count);
+
+        _logger.LogDebug(
+            "Retrieved {ResultCount} top-priced medical services",
+            services.Count);
 
         return _mapper.Map<IReadOnlyList<MedicalServiceDto>>(
             services);
@@ -99,7 +161,13 @@ public sealed class MedicalServiceService : IMedicalServiceService
         CreateMedicalServiceDto dto,
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.Create");
+
         ArgumentNullException.ThrowIfNull(dto);
+
+        activity?.SetTag("catalog.category.id", dto.CategoryId);
+        activity?.SetTag("catalog.equipment.id", dto.EquipmentId);
 
         await EnsureReferencesExistAsync(
             dto.CategoryId,
@@ -117,7 +185,16 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        return await GetByIdAsync(service.ServiceId, ct);
+        activity?.SetTag("catalog.service.id", service.ServiceId);
+
+        var result = await GetByIdAsync(service.ServiceId, ct);
+
+        _logger.LogInformation(
+            "Created medical service {ServiceId} in category {CategoryId}",
+            service.ServiceId,
+            dto.CategoryId);
+
+        return result;
     }
 
     public async Task<MedicalServiceDto> UpdateAsync(
@@ -125,10 +202,16 @@ public sealed class MedicalServiceService : IMedicalServiceService
         UpdateMedicalServiceDto dto,
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.Update");
+
+        activity?.SetTag("catalog.service.id", id);
+
         ArgumentNullException.ThrowIfNull(dto);
 
         if (id <= 0)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
             throw new ArgumentOutOfRangeException(nameof(id));
         }
 
@@ -137,6 +220,12 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         if (service is null)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
+
+            _logger.LogWarning(
+                "Cannot update medical service {ServiceId}: service was not found",
+                id);
+
             throw new NotFoundException(
                 $"Medical service with ID {id} was not found.");
         }
@@ -163,15 +252,27 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        return await GetByIdAsync(id, ct);
+        var result = await GetByIdAsync(id, ct);
+
+        _logger.LogInformation(
+            "Updated medical service {ServiceId}",
+            id);
+
+        return result;
     }
 
     public async Task DeleteAsync(
         long id,
         CancellationToken ct = default)
     {
+        using var activity = ActivitySource.StartActivity(
+            "Catalog.MedicalService.Delete");
+
+        activity?.SetTag("catalog.service.id", id);
+
         if (id <= 0)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
             throw new ArgumentOutOfRangeException(nameof(id));
         }
 
@@ -180,6 +281,12 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         if (service is null)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
+
+            _logger.LogWarning(
+                "Cannot delete medical service {ServiceId}: service was not found",
+                id);
+
             throw new NotFoundException(
                 $"Medical service with ID {id} was not found.");
         }
@@ -187,6 +294,10 @@ public sealed class MedicalServiceService : IMedicalServiceService
         _unitOfWork.MedicalServices.Remove(service);
 
         await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Deleted medical service {ServiceId}",
+            id);
     }
 
     private async Task EnsureReferencesExistAsync(
