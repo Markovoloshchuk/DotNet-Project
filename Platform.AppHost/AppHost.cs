@@ -1,3 +1,4 @@
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // SQL initialization scripts for Appointments
@@ -44,6 +45,11 @@ var feedbackDb = mongodb.AddDatabase(
     "FeedbackDb",
     "ClinicFeedbackDB");
 
+// Redis
+var redis = builder
+    .AddRedis("redis")
+    .WithDataVolume();
+
 // Appointments API
 var appointmentsApi = builder
     .AddProject<Projects.Appointments_Api>("appointments-api")
@@ -54,7 +60,9 @@ var appointmentsApi = builder
 var catalogApi = builder
     .AddProject<Projects.Catalog_Api>("catalog-api")
     .WithReference(catalogDb)
-    .WaitFor(catalogDb);
+    .WithReference(redis)
+    .WaitFor(catalogDb)
+    .WaitFor(redis);
 
 // Feedback API
 var feedbackApi = builder
@@ -68,9 +76,11 @@ var aggregator = builder
     .WithReference(appointmentsApi)
     .WithReference(catalogApi)
     .WithReference(feedbackApi)
+    .WithReference(redis)
     .WaitFor(appointmentsApi)
     .WaitFor(catalogApi)
-    .WaitFor(feedbackApi);
+    .WaitFor(feedbackApi)
+    .WaitFor(redis);
 
 // API Gateway
 builder
