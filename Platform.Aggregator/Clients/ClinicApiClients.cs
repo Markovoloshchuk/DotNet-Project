@@ -27,39 +27,6 @@ public abstract class JsonApiClient
     }
 }
 
-public sealed class AppointmentsClient : JsonApiClient
-{
-    public AppointmentsClient(HttpClient httpClient)
-        : base(httpClient)
-    {
-    }
-
-    public Task<JsonElement> GetByIdAsync(
-        int appointmentId,
-        CancellationToken cancellationToken)
-    {
-        return GetJsonAsync(
-            $"api/appointments/{appointmentId}",
-            cancellationToken);
-    }
-}
-
-public sealed class CatalogClient : JsonApiClient
-{
-    public CatalogClient(HttpClient httpClient)
-        : base(httpClient)
-    {
-    }
-
-    public Task<JsonElement> GetAllAsync(
-        CancellationToken cancellationToken)
-    {
-        return GetJsonAsync(
-            "api/catalog/medical-services?pageNumber=1&pageSize=100",
-            cancellationToken);
-    }
-}
-
 public sealed class FeedbackClient : JsonApiClient
 {
     public FeedbackClient(HttpClient httpClient)
@@ -68,17 +35,10 @@ public sealed class FeedbackClient : JsonApiClient
     }
 
     public Task<JsonElement> GetForAppointmentAsync(
-        JsonElement appointment,
+        long patientId,
+        long doctorId,
         CancellationToken cancellationToken)
     {
-        var patientId = appointment
-            .GetProperty("patientId")
-            .GetInt64();
-
-        var doctorId = appointment
-            .GetProperty("doctorId")
-            .GetInt64();
-
         var relativePath =
             $"api/feedback/patient-reviews?patientId={patientId}" +
             $"&doctorId={doctorId}&page=1&pageSize=100";

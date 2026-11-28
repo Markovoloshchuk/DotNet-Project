@@ -1,3 +1,5 @@
+using Appointments.Api.Grpc.Contracts;
+using Catalog.Api.Grpc.Contracts;
 using Platform.Aggregator.Clients;
 using Platform.Aggregator.Services;
 using Platform.ServiceDefaults;
@@ -5,6 +7,9 @@ using Platform.ServiceDefaults;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Redis distributed cache.
+builder.AddRedisDistributedCache("redis");
 
 // Controllers
 builder.Services.AddControllers();
@@ -16,7 +21,7 @@ builder.Services.AddSwaggerGen();
 // ProblemDetails
 builder.Services.AddProblemDetails();
 
-// Service addresses from Aspire Service Discovery
+// Service addresses from Aspire Service Discovery.
 var appointmentsAddress = GetServiceAddress(
     builder.Configuration,
     "Services:Appointments");
@@ -29,23 +34,26 @@ var feedbackAddress = GetServiceAddress(
     builder.Configuration,
     "Services:Feedback");
 
-// Typed HTTP clients
-builder.Services.AddHttpClient<AppointmentsClient>(client =>
-{
-    client.BaseAddress = appointmentsAddress;
-});
+// gRPC clients.
+builder.Services.AddGrpcClient<AppointmentsGrpc.AppointmentsGrpcClient>(
+    options =>
+    {
+        options.Address = appointmentsAddress;
+    });
 
-builder.Services.AddHttpClient<CatalogClient>(client =>
-{
-    client.BaseAddress = catalogAddress;
-});
+builder.Services.AddGrpcClient<CatalogGrpc.CatalogGrpcClient>(
+    options =>
+    {
+        options.Address = catalogAddress;
+    });
 
+// Feedback remains an HTTP client.
 builder.Services.AddHttpClient<FeedbackClient>(client =>
 {
     client.BaseAddress = feedbackAddress;
 });
 
-// Aggregation service
+// Aggregation service.
 builder.Services.AddScoped<AppointmentAggregationService>();
 
 var app = builder.Build();
