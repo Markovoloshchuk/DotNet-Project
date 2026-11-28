@@ -1,25 +1,40 @@
+
+using Appointments.Api.Grpc;
 using Appointments.Api.Middleware;
 using Appointments.Bll;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Enable HTTP/1.1 and HTTP/2 negotiation on HTTPS endpoints.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureEndpointDefaults(endpointOptions =>
+    {
+        endpointOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+});
+
 builder.AddServiceDefaults();
 
-// Connection string
+// Connection string.
 var connectionString =
     builder.Configuration.GetConnectionString("AppointmentsDb")
     ?? throw new InvalidOperationException(
         "Connection string 'AppointmentsDb' is missing.");
 
-// Controllers
+// Controllers.
 builder.Services.AddControllers();
 
-// Swagger
+// gRPC.
+builder.Services.AddGrpc();
+
+// Swagger.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ProblemDetails
+// ProblemDetails.
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -29,23 +44,23 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 
-// Global exception handler
+// Global exception handler.
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
-// BLL + DAL + Unit of Work + AutoMapper
+// BLL + DAL + Unit of Work + AutoMapper.
 builder.Services.AddAppointmentsBll(
     connectionString,
     builder.Configuration["AutoMapper:LicenseKey"]);
 
 var app = builder.Build();
 
-// Correlation ID middleware
+// Correlation ID middleware.
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Exception handling
+// Exception handling.
 app.UseExceptionHandler();
 
-// Swagger UI
+// Swagger UI.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -56,7 +71,12 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+// HTTP REST endpoints.
 app.MapControllers();
+
+// gRPC endpoints.
+app.MapGrpcService<AppointmentsGrpcService>();
+
 app.MapDefaultEndpoints();
 
 app.Run();

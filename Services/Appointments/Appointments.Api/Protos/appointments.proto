@@ -1,0 +1,48 @@
+
+syntax = "proto3";
+
+package clinic.appointments.v1;
+
+option csharp_namespace = "Appointments.Api.Grpc.Contracts";
+
+import "google/protobuf/timestamp.proto";
+
+// Internal gRPC API for appointment operations.
+service AppointmentsGrpc {
+
+  // Retrieves an appointment with its associated services.
+  rpc GetAppointmentById (GetAppointmentByIdRequest)
+      returns (AppointmentResponse);
+}
+
+// Request containing the appointment identifier.
+message GetAppointmentByIdRequest {
+  int64 id = 1;
+}
+
+// Appointment data returned by the service.
+message AppointmentResponse {
+  int64 appointment_id = 1;
+  int64 patient_id = 2;
+  int64 doctor_id = 3;
+
+  google.protobuf.Timestamp appointment_date = 4;
+
+  string status = 5;
+
+  // Decimal value represented as a string to preserve precision.
+  string total_amount = 6;
+
+  google.protobuf.Timestamp created_at = 7;
+
+  repeated AppointmentServiceResponse services = 8;
+}
+
+// Medical service associated with an appointment.
+message AppointmentServiceResponse {
+  int64 appointment_service_id = 1;
+  int64 service_id = 2;
+  string service_name_snapshot = 3;
+  string price_snapshot = 4;
+  int32 quantity = 5;
+}

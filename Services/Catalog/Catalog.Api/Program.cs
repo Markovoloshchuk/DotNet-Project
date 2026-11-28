@@ -2,17 +2,28 @@
 using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
+using Catalog.Api.Grpc;
 using Catalog.Api.Validators;
 using Catalog.Bll;
 using Catalog.Dal;
 using Catalog.Dal.Persistence;
 using FluentValidation;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Enable HTTP/1.1 and HTTP/2 negotiation on HTTPS endpoints.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureEndpointDefaults(endpointOptions =>
+    {
+        endpointOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+});
 
 builder.AddServiceDefaults();
 
@@ -72,6 +83,9 @@ builder.Services.AddControllers(options =>
     options.Filters.AddService<FluentValidationActionFilter>();
 });
 
+// gRPC.
+builder.Services.AddGrpc();
+
 // Global exception handling.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -117,7 +131,12 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+// HTTP REST endpoints.
 app.MapControllers();
+
+// gRPC endpoints.
+app.MapGrpcService<CatalogGrpcService>();
+
 app.MapDefaultEndpoints();
 
 app.Run();

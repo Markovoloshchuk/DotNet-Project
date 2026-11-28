@@ -1,0 +1,69 @@
+
+syntax = "proto3";
+
+package clinic.catalog.v1;
+
+option csharp_namespace = "Catalog.Api.Grpc.Contracts";
+
+// Internal gRPC API for medical service catalog.
+service CatalogGrpc {
+
+  // Retrieves one medical service.
+  // The RPC name follows the GetProduct requirement in Lab 06.
+  rpc GetProduct (GetProductRequest)
+      returns (MedicalServiceResponse);
+
+  // Retrieves multiple medical services by their identifiers.
+  rpc GetProductsByIds (GetProductsByIdsRequest)
+      returns (GetProductsByIdsResponse);
+}
+
+message GetProductRequest {
+  int64 id = 1;
+}
+
+message GetProductsByIdsRequest {
+  repeated int64 ids = 1;
+}
+
+message GetProductsByIdsResponse {
+  repeated MedicalServiceResponse products = 1;
+}
+
+// Medical service information.
+message MedicalServiceResponse {
+  int64 service_id = 1;
+  int64 category_id = 2;
+  string category_name = 3;
+
+  // Zero means that no equipment is assigned.
+  int64 equipment_id = 4;
+
+  string equipment_name = 5;
+  string service_name = 6;
+
+  // Decimal value represented as a string.
+  string price = 7;
+
+  int32 duration_minutes = 8;
+  bool is_active = 9;
+
+  ServiceDetailResponse detail = 10;
+
+  repeated MedicalServicePackageResponse packages = 11;
+}
+
+// Additional information about the medical service.
+message ServiceDetailResponse {
+  int64 service_detail_id = 1;
+  string preparation_instructions = 2;
+  string contraindications = 3;
+}
+
+// Information about a package containing the service.
+message MedicalServicePackageResponse {
+  int64 package_id = 1;
+  string package_name = 2;
+  int32 quantity = 3;
+  string custom_notes = 4;
+}
