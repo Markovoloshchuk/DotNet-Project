@@ -1,4 +1,5 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Catalog.Domain\Catalog.Domain.csproj" />
@@ -7,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.1.4" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.15" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.15" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.15" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.15" />
   </ItemGroup>

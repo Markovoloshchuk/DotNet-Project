@@ -1,5 +1,6 @@
 
 using AutoMapper;
+using Catalog.Bll.Caching;
 using Catalog.Bll.Interfaces;
 using Catalog.Bll.Mapping;
 using Catalog.Bll.Services;
@@ -15,7 +16,18 @@ public static class DependencyInjection
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Business services
+        // Local memory cache with a size limit.
+        services.AddMemoryCache(options =>
+        {
+            options.SizeLimit = 1024;
+        });
+
+        // Two-level cache service.
+        services.AddSingleton<
+            ICatalogCacheService,
+            CatalogCacheService>();
+
+        // Business services.
         services.AddScoped<
             IServiceCategoryService,
             ServiceCategoryService>();
@@ -24,7 +36,7 @@ public static class DependencyInjection
             IMedicalServiceService,
             MedicalServiceService>();
 
-        // AutoMapper
+        // AutoMapper.
         services.AddAutoMapper(
             cfg =>
             {

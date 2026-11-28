@@ -1,5 +1,7 @@
+
 using System.Diagnostics;
 using AutoMapper;
+using Catalog.Bll.Caching;
 using Catalog.Bll.DTOs.Common;
 using Catalog.Bll.DTOs.MedicalServices;
 using Catalog.Bll.Interfaces;
@@ -15,17 +17,23 @@ public sealed class MedicalServiceService : IMedicalServiceService
     private static readonly ActivitySource ActivitySource =
         new("Clinic.Catalog");
 
+    private const string CacheKeyPrefix =
+        "catalog:medical-service:";
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ICatalogCacheService _cache;
     private readonly ILogger<MedicalServiceService> _logger;
 
     public MedicalServiceService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
+        ICatalogCacheService cache,
         ILogger<MedicalServiceService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -63,6 +71,23 @@ public sealed class MedicalServiceService : IMedicalServiceService
             throw new ArgumentOutOfRangeException(nameof(id));
         }
 
+        var cacheKey = GetCacheKey(id);
+
+        // Cache-Aside: check L1 and L2 before accessing the database.
+        var cachedService = await _cache.GetAsync<MedicalServiceDto>(
+            cacheKey,
+            ct);
+
+        if (cachedService is not null)
+        {
+            activity?.SetTag("catalog.cache.hit", true);
+
+            return cachedService;
+        }
+
+        activity?.SetTag("catalog.cache.hit", false);
+
+        // Cache MISS: retrieve the entity from the database.
         var service = await _unitOfWork.MedicalServiceQueries
             .GetByIdWithDetailsAsync(id, ct);
 
@@ -78,11 +103,19 @@ public sealed class MedicalServiceService : IMedicalServiceService
                 $"Medical service with ID {id} was not found.");
         }
 
+        var result = _mapper.Map<MedicalServiceDto>(service);
+
+        // Populate L1 and L2 caches.
+        await _cache.SetAsync(
+            cacheKey,
+            result,
+            ct);
+
         _logger.LogDebug(
-            "Retrieved medical service {ServiceId}",
+            "Retrieved medical service {ServiceId} from database",
             id);
 
-        return _mapper.Map<MedicalServiceDto>(service);
+        return result;
     }
 
     public async Task<PagedResultDto<MedicalServiceDto>> SearchAsync(
@@ -187,6 +220,11 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         activity?.SetTag("catalog.service.id", service.ServiceId);
 
+        // Invalidate a possible cache entry after successful creation.
+        await _cache.RemoveAsync(
+            GetCacheKey(service.ServiceId),
+            ct);
+
         var result = await GetByIdAsync(service.ServiceId, ct);
 
         _logger.LogInformation(
@@ -252,6 +290,12 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
+        // Invalidate both L1 and L2 after successful database update.
+        await _cache.RemoveAsync(
+            GetCacheKey(id),
+            ct);
+
+        // Reload the updated DTO and populate the cache again.
         var result = await GetByIdAsync(id, ct);
 
         _logger.LogInformation(
@@ -295,9 +339,19 @@ public sealed class MedicalServiceService : IMedicalServiceService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
+        // Remove cached data only after successful deletion.
+        await _cache.RemoveAsync(
+            GetCacheKey(id),
+            ct);
+
         _logger.LogInformation(
             "Deleted medical service {ServiceId}",
             id);
+    }
+
+    private static string GetCacheKey(long id)
+    {
+        return $"{CacheKeyPrefix}{id}";
     }
 
     private async Task EnsureReferencesExistAsync(

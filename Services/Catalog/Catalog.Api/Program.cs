@@ -1,3 +1,4 @@
+
 using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
@@ -15,7 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Database connection
+// Redis distributed cache.
+builder.AddRedisDistributedCache("redis");
+
+// Database connection.
 var connectionString =
     builder.Configuration.GetConnectionString("CatalogDb");
 
@@ -25,7 +29,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
         "Connection string 'CatalogDb' was not found.");
 }
 
-// Entity Framework Core + SQL command logging
+// Entity Framework Core + SQL command logging.
 builder.Services.AddDbContext<CatalogDbContext>(
     (serviceProvider, options) =>
     {
@@ -46,33 +50,33 @@ builder.Services.AddDbContext<CatalogDbContext>(
             LogLevel.Information);
     });
 
-// Data Access Layer
+// Data Access Layer.
 builder.Services.AddCatalogDal();
 
-// Business Logic Layer
+// Business Logic Layer + Cache + AutoMapper.
 builder.Services.AddCatalogBll(
     builder.Configuration["AutoMapper:LicenseKey"]);
 
-// Database seeder
+// Database seeder.
 builder.Services.AddScoped<CatalogDbSeeder>();
 
-// FluentValidation
+// FluentValidation.
 builder.Services.AddValidatorsFromAssemblyContaining<
     CreateMedicalServiceDtoValidator>();
 
 builder.Services.AddScoped<FluentValidationActionFilter>();
 
-// Controllers
+// Controllers.
 builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<FluentValidationActionFilter>();
 });
 
-// Global exception handling
+// Global exception handling.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// Swagger
+// Swagger.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -87,30 +91,28 @@ if (app.Environment.IsDevelopment())
     var dbContext = scope.ServiceProvider
         .GetRequiredService<CatalogDbContext>();
 
-    // Apply all pending EF Core migrations.
     await dbContext.Database.MigrateAsync();
 
-    // Seed additional development data.
     var seeder = scope.ServiceProvider
         .GetRequiredService<CatalogDbSeeder>();
 
     await seeder.SeedAsync();
 }
 
-// Correlation ID middleware
+// Correlation ID middleware.
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Global exception handling middleware
+// Global exception handling middleware.
 app.UseExceptionHandler();
 
-// Swagger
+// Swagger.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// HTTP pipeline
+// HTTP pipeline.
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
