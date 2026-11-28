@@ -1,4 +1,6 @@
 using System.Net;
+using Grpc.Core;
+using GrpcStatusCode = Grpc.Core.StatusCode;
 using Microsoft.AspNetCore.Mvc;
 using Platform.Aggregator.Models;
 using Platform.Aggregator.Services;
@@ -18,17 +20,14 @@ public sealed class AggregatorController : ControllerBase
     }
 
     [HttpGet("appointments/{id:int}/full")]
-    [ProducesResponseType(
-        typeof(AppointmentFullResponse),
-        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AppointmentFullResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
-    public async Task<ActionResult<AppointmentFullResponse>>
-        GetFullAppointment(
-            int id,
-            CancellationToken cancellationToken)
+    public async Task<ActionResult<AppointmentFullResponse>> GetFullAppointment(
+        int id,
+        CancellationToken cancellationToken)
     {
         if (id <= 0)
         {
@@ -47,6 +46,66 @@ public sealed class AggregatorController : ControllerBase
                 cancellationToken);
 
             return Ok(result);
+        }
+        catch (RpcException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (RpcException exception)
+            when (exception.StatusCode == GrpcStatusCode.NotFound)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Appointment not found",
+                Detail = $"Appointment with ID {id} was not found.",
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+        catch (RpcException exception)
+            when (exception.StatusCode == GrpcStatusCode.InvalidArgument)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Invalid appointment request",
+                Detail = "The Appointments service rejected the request.",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (RpcException exception)
+            when (exception.StatusCode == GrpcStatusCode.Unavailable)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new ProblemDetails
+                {
+                    Title = "Appointments service unavailable",
+                    Detail = "Could not retrieve the requested appointment.",
+                    Status = StatusCodes.Status502BadGateway
+                });
+        }
+        catch (RpcException exception)
+            when (exception.StatusCode == GrpcStatusCode.DeadlineExceeded)
+        {
+            return StatusCode(
+                StatusCodes.Status504GatewayTimeout,
+                new ProblemDetails
+                {
+                    Title = "Appointments service timeout",
+                    Detail = "The primary service did not respond in time.",
+                    Status = StatusCodes.Status504GatewayTimeout
+                });
+        }
+        catch (RpcException)
+        {
+            return StatusCode(
+                StatusCodes.Status502BadGateway,
+                new ProblemDetails
+                {
+                    Title = "Appointments service error",
+                    Detail = "The primary service returned a gRPC error.",
+                    Status = StatusCodes.Status502BadGateway
+                });
         }
         catch (HttpRequestException exception)
             when (exception.StatusCode == HttpStatusCode.NotFound)
