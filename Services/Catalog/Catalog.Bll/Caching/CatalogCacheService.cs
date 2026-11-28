@@ -1,4 +1,4 @@
-
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,6 +8,8 @@ namespace Catalog.Bll.Caching;
 
 public sealed class CatalogCacheService : ICatalogCacheService
 {
+    private const string CacheMeterName = "Clinic.Catalog.Cache";
+
     private static readonly TimeSpan L1SlidingExpiration =
         TimeSpan.FromSeconds(15);
 
@@ -21,14 +23,33 @@ public sealed class CatalogCacheService : ICatalogCacheService
     private readonly IDistributedCache _distributedCache;
     private readonly ILogger<CatalogCacheService> _logger;
 
+    private readonly Counter<long> _cacheHits;
+    private readonly Counter<long> _cacheMisses;
+    private readonly Counter<long> _cacheInvalidations;
+
     public CatalogCacheService(
         IMemoryCache memoryCache,
         IDistributedCache distributedCache,
-        ILogger<CatalogCacheService> logger)
+        ILogger<CatalogCacheService> logger,
+        IMeterFactory meterFactory)
     {
         _memoryCache = memoryCache;
         _distributedCache = distributedCache;
         _logger = logger;
+
+        var meter = meterFactory.Create(CacheMeterName);
+
+        _cacheHits = meter.CreateCounter<long>(
+            "clinic.cache.hits",
+            description: "Number of Catalog cache hits.");
+
+        _cacheMisses = meter.CreateCounter<long>(
+            "clinic.cache.misses",
+            description: "Number of Catalog cache misses.");
+
+        _cacheInvalidations = meter.CreateCounter<long>(
+            "clinic.cache.invalidations",
+            description: "Number of Catalog cache invalidations.");
     }
 
     public async Task<T?> GetAsync<T>(
@@ -38,10 +59,12 @@ public sealed class CatalogCacheService : ICatalogCacheService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        // L1: локальний кеш у пам'яті.
+        // L1: local in-memory cache.
         if (_memoryCache.TryGetValue(key, out var memoryValue)
             && memoryValue is T cachedValue)
         {
+            RecordHit("L1");
+
             _logger.LogDebug(
                 "L1 cache HIT for key {CacheKey}",
                 key);
@@ -49,11 +72,13 @@ public sealed class CatalogCacheService : ICatalogCacheService
             return cachedValue;
         }
 
+        RecordMiss("L1");
+
         _logger.LogDebug(
             "L1 cache MISS for key {CacheKey}",
             key);
 
-        // L2: розподілений Redis-кеш.
+        // L2: distributed Redis cache.
         try
         {
             var cachedBytes = await _distributedCache.GetAsync(
@@ -62,6 +87,8 @@ public sealed class CatalogCacheService : ICatalogCacheService
 
             if (cachedBytes is null || cachedBytes.Length == 0)
             {
+                RecordMiss("L2");
+
                 _logger.LogDebug(
                     "L2 cache MISS for key {CacheKey}",
                     key);
@@ -74,6 +101,8 @@ public sealed class CatalogCacheService : ICatalogCacheService
 
             if (distributedValue is null)
             {
+                RecordMiss("L2");
+
                 _logger.LogWarning(
                     "L2 cache returned an empty value for key {CacheKey}",
                     key);
@@ -81,11 +110,12 @@ public sealed class CatalogCacheService : ICatalogCacheService
                 return null;
             }
 
+            RecordHit("L2");
+
             _logger.LogDebug(
                 "L2 cache HIT for key {CacheKey}",
                 key);
 
-            // Заповнюємо L1 після успішного отримання з L2.
             SetMemoryCache(key, distributedValue);
 
             return distributedValue;
@@ -97,8 +127,8 @@ public sealed class CatalogCacheService : ICatalogCacheService
         }
         catch (Exception exception)
         {
-            // Redis недоступний: повертаємо MISS,
-            // щоб BLL могла звернутися до бази даних.
+            RecordMiss("L2");
+
             _logger.LogWarning(
                 exception,
                 "L2 cache read failed for key {CacheKey}. " +
@@ -118,7 +148,6 @@ public sealed class CatalogCacheService : ICatalogCacheService
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
 
-        // Спочатку заповнюємо L1.
         SetMemoryCache(key, value);
 
         try
@@ -132,7 +161,6 @@ public sealed class CatalogCacheService : ICatalogCacheService
                     L2AbsoluteExpiration
             };
 
-            // Потім записуємо дані в L2.
             await _distributedCache.SetAsync(
                 key,
                 serializedValue,
@@ -150,8 +178,6 @@ public sealed class CatalogCacheService : ICatalogCacheService
         }
         catch (Exception exception)
         {
-            // Навіть якщо Redis недоступний,
-            // локальний кеш залишається працездатним.
             _logger.LogWarning(
                 exception,
                 "L2 cache write failed for key {CacheKey}. " +
@@ -166,8 +192,9 @@ public sealed class CatalogCacheService : ICatalogCacheService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        // Інвалідуємо локальний кеш.
         _memoryCache.Remove(key);
+
+        RecordInvalidation("L1");
 
         _logger.LogInformation(
             "L1 cache entry invalidated for key {CacheKey}",
@@ -175,10 +202,11 @@ public sealed class CatalogCacheService : ICatalogCacheService
 
         try
         {
-            // Інвалідуємо розподілений кеш.
             await _distributedCache.RemoveAsync(
                 key,
                 ct);
+
+            RecordInvalidation("L2");
 
             _logger.LogInformation(
                 "L2 cache entry invalidated for key {CacheKey}",
@@ -191,8 +219,6 @@ public sealed class CatalogCacheService : ICatalogCacheService
         }
         catch (Exception exception)
         {
-            // Не допускаємо падіння основної операції
-            // через недоступність Redis.
             _logger.LogWarning(
                 exception,
                 "L2 cache invalidation failed for key {CacheKey}.",
@@ -211,5 +237,26 @@ public sealed class CatalogCacheService : ICatalogCacheService
             .SetAbsoluteExpiration(L1AbsoluteExpiration);
 
         _memoryCache.Set(key, value, options);
+    }
+
+    private void RecordHit(string level)
+    {
+        _cacheHits.Add(
+            1,
+            new KeyValuePair<string, object?>("cache.level", level));
+    }
+
+    private void RecordMiss(string level)
+    {
+        _cacheMisses.Add(
+            1,
+            new KeyValuePair<string, object?>("cache.level", level));
+    }
+
+    private void RecordInvalidation(string level)
+    {
+        _cacheInvalidations.Add(
+            1,
+            new KeyValuePair<string, object?>("cache.level", level));
     }
 }

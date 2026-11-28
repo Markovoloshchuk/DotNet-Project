@@ -10,6 +10,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Platform.ServiceDefaults;
+using Platform.ServiceDefaults.Observability;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -23,7 +24,6 @@ public static class Extensions
 
     private const string MongoDbActivitySourceName = "MongoDB.Driver";
 
-    // Custom business ActivitySources.
     private const string AppointmentsActivitySourceName =
         "Clinic.Appointments";
 
@@ -43,6 +43,13 @@ public static class Extensions
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddServiceDiscovery();
+
+        // Metrics infrastructure.
+        builder.Services.AddMetrics();
+
+        // Shared gRPC interceptors.
+        builder.Services.AddSingleton<GrpcServerLoggingInterceptor>();
+        builder.Services.AddSingleton<GrpcClientTracingInterceptor>();
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddTransient<CorrelationIdDelegatingHandler>();
@@ -140,6 +147,7 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics
+                    .AddMeter(TelemetryNames.CatalogCacheMeter)
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
@@ -152,6 +160,7 @@ public static class Extensions
                         new TraceIdRatioBasedSampler(samplingRatio))
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource(MongoDbActivitySourceName)
+                    .AddSource(TelemetryNames.GrpcActivitySource)
 
                     // Business ActivitySources.
                     .AddSource(AppointmentsActivitySourceName)

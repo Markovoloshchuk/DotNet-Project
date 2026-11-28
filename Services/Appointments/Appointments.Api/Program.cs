@@ -1,9 +1,9 @@
-
 using Appointments.Api.Grpc;
 using Appointments.Api.Middleware;
 using Appointments.Bll;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Platform.ServiceDefaults;
+using Platform.ServiceDefaults.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,8 +27,11 @@ var connectionString =
 // Controllers.
 builder.Services.AddControllers();
 
-// gRPC.
-builder.Services.AddGrpc();
+// gRPC with server interceptor.
+builder.Services.AddGrpc(options =>
+{
+    options.Interceptors.Add<GrpcServerLoggingInterceptor>();
+});
 
 // Swagger.
 builder.Services.AddEndpointsApiExplorer();

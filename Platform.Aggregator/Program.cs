@@ -3,6 +3,7 @@ using Catalog.Api.Grpc.Contracts;
 using Platform.Aggregator.Clients;
 using Platform.Aggregator.Services;
 using Platform.ServiceDefaults;
+using Platform.ServiceDefaults.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,14 +12,14 @@ builder.AddServiceDefaults();
 // Redis distributed cache.
 builder.AddRedisDistributedCache("redis");
 
-// Controllers
+// Controllers.
 builder.Services.AddControllers();
 
-// Swagger
+// Swagger.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ProblemDetails
+// ProblemDetails.
 builder.Services.AddProblemDetails();
 
 // Service addresses from Aspire Service Discovery.
@@ -34,18 +35,23 @@ var feedbackAddress = GetServiceAddress(
     builder.Configuration,
     "Services:Feedback");
 
-// gRPC clients.
-builder.Services.AddGrpcClient<AppointmentsGrpc.AppointmentsGrpcClient>(
-    options =>
-    {
-        options.Address = appointmentsAddress;
-    });
+// Appointments gRPC client with tracing interceptor.
+builder.Services
+    .AddGrpcClient<AppointmentsGrpc.AppointmentsGrpcClient>(
+        options =>
+        {
+            options.Address = appointmentsAddress;
+        })
+    .AddInterceptor<GrpcClientTracingInterceptor>();
 
-builder.Services.AddGrpcClient<CatalogGrpc.CatalogGrpcClient>(
-    options =>
-    {
-        options.Address = catalogAddress;
-    });
+// Catalog gRPC client with tracing interceptor.
+builder.Services
+    .AddGrpcClient<CatalogGrpc.CatalogGrpcClient>(
+        options =>
+        {
+            options.Address = catalogAddress;
+        })
+    .AddInterceptor<GrpcClientTracingInterceptor>();
 
 // Feedback remains an HTTP client.
 builder.Services.AddHttpClient<FeedbackClient>(client =>
@@ -58,13 +64,13 @@ builder.Services.AddScoped<AppointmentAggregationService>();
 
 var app = builder.Build();
 
-// Correlation ID
+// Correlation ID.
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Exception handling
+// Exception handling.
 app.UseExceptionHandler();
 
-// Swagger
+// Swagger.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

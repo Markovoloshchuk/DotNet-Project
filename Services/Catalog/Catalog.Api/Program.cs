@@ -1,4 +1,3 @@
-
 using Catalog.Api.Data;
 using Catalog.Api.Exceptions;
 using Catalog.Api.Filters;
@@ -13,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Platform.ServiceDefaults;
+using Platform.ServiceDefaults.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,8 +83,11 @@ builder.Services.AddControllers(options =>
     options.Filters.AddService<FluentValidationActionFilter>();
 });
 
-// gRPC.
-builder.Services.AddGrpc();
+// gRPC with server interceptor.
+builder.Services.AddGrpc(options =>
+{
+    options.Interceptors.Add<GrpcServerLoggingInterceptor>();
+});
 
 // Global exception handling.
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
